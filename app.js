@@ -12,6 +12,7 @@ const ui = {
   autoNest: document.querySelector("#autoNest"),
   saveProject: document.querySelector("#saveProject"),
   exportSvg: document.querySelector("#exportSvg"),
+  exportMiniMarker: document.querySelector("#exportMiniMarker"),
   modeMove: document.querySelector("#modeMove"),
   modePoints: document.querySelector("#modePoints"),
   modeDraw: document.querySelector("#modeDraw"),
@@ -604,7 +605,7 @@ function autoNest() {
   draw();
 }
 
-function exportSvg() {
+function exportSvgMarkup() {
   const fabricWidth = Number(ui.fabricWidth.value);
   const paths = pieces
     .map((piece) => {
@@ -613,17 +614,98 @@ function exportSvg() {
       return `<path d="${d} Z" fill="${piece.color}22" stroke="${piece.color}" stroke-width="0.6"><title>${piece.name}</title></path>`;
     })
     .join("\n  ");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${fabricWidth}cm" height="${fabricHeight}cm" viewBox="0 0 ${fabricWidth} ${fabricHeight}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${fabricWidth}cm" height="${fabricHeight}cm" viewBox="0 0 ${fabricWidth} ${fabricHeight}">
   <rect x="0" y="0" width="${fabricWidth}" height="${fabricHeight}" fill="#f9faf7" stroke="#6b7280" stroke-width="0.5"/>
   ${paths}
 </svg>`;
-  const blob = new Blob([svg], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "risco-moldelab.svg";
-  link.click();
-  URL.revokeObjectURL(url);
+}
+
+function exportSvg() {
+  downloadFile(exportSvgMarkup(), "risco-moldelab.svg", "image/svg+xml");
+}
+
+function exportMiniMarker() {
+  const fabricWidth = Number(ui.fabricWidth.value);
+  const previewWidth = 1600;
+  const margin = 48;
+  const headerHeight = 86;
+  const previewScale = (previewWidth - margin * 2) / fabricWidth;
+  const previewHeight = Math.ceil(headerHeight + fabricHeight * previewScale + margin);
+  const output = document.createElement("canvas");
+  output.width = previewWidth;
+  output.height = previewHeight;
+  const out = output.getContext("2d");
+
+  out.fillStyle = "#ffffff";
+  out.fillRect(0, 0, output.width, output.height);
+
+  out.fillStyle = "#111827";
+  out.font = "700 28px Arial";
+  out.fillText(ui.projectName.value || "MoldeLab Projeto", margin, 38);
+  out.font = "18px Arial";
+  out.fillStyle = "#4b5563";
+  out.fillText(`Mini risco - ${ui.fabricType.value === "tubular" ? "Tecido tubular" : "Tecido plano"} - largura ${fabricWidth} cm`, margin, 66);
+
+  const ox = margin;
+  const oy = headerHeight;
+  const fw = fabricWidth * previewScale;
+  const fh = fabricHeight * previewScale;
+
+  out.fillStyle = "#f9faf7";
+  out.strokeStyle = "#6b7280";
+  out.lineWidth = 2;
+  out.fillRect(ox, oy, fw, fh);
+  out.strokeRect(ox, oy, fw, fh);
+
+  out.strokeStyle = "#d8e0db";
+  out.lineWidth = 1;
+  for (let cm = 10; cm < fabricWidth; cm += 10) {
+    out.beginPath();
+    out.moveTo(ox + cm * previewScale, oy);
+    out.lineTo(ox + cm * previewScale, oy + fh);
+    out.stroke();
+  }
+  for (let cm = 10; cm < fabricHeight; cm += 10) {
+    out.beginPath();
+    out.moveTo(ox, oy + cm * previewScale);
+    out.lineTo(ox + fw, oy + cm * previewScale);
+    out.stroke();
+  }
+
+  pieces.forEach((piece) => {
+    const points = transformedPoints(piece);
+    out.beginPath();
+    points.forEach(([x, y], index) => {
+      const px = ox + x * previewScale;
+      const py = oy + y * previewScale;
+      if (index === 0) out.moveTo(px, py);
+      else out.lineTo(px, py);
+    });
+    out.closePath();
+    out.fillStyle = `${piece.color}22`;
+    out.strokeStyle = piece.color;
+    out.lineWidth = 3;
+    out.fill();
+    out.stroke();
+
+    const box = bounds(points);
+    out.fillStyle = "#111827";
+    out.font = "700 16px Arial";
+    out.fillText(piece.name, ox + (box.minX + 1.5) * previewScale, oy + (box.minY + 5) * previewScale);
+  });
+
+  output.toBlob((blob) => {
+    if (!blob) {
+      updateImportStatus("Nao foi possivel gerar o mini risco.");
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "mini-risco-moldelab.jpg";
+    link.click();
+    URL.revokeObjectURL(url);
+  }, "image/jpeg", 0.92);
 }
 
 function downloadFile(content, filename, type) {
@@ -1267,6 +1349,7 @@ ui.spacing.addEventListener("input", draw);
 ui.autoNest.addEventListener("click", autoNest);
 ui.saveProject.addEventListener("click", saveProject);
 ui.exportSvg.addEventListener("click", exportSvg);
+ui.exportMiniMarker.addEventListener("click", exportMiniMarker);
 ui.addPiece.addEventListener("click", addPiece);
 ui.finishTrace.addEventListener("click", finishTrace);
 ui.imageInput.addEventListener("change", (event) => importImage(event.target.files[0]));
