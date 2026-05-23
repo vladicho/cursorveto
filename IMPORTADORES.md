@@ -63,6 +63,19 @@ edicao de pontos e exportacao trabalham sobre essa geometria interna.
 replicar todo o Audaces, mas recuperar contornos, piques, curvas e medidas
 basicas. Para isso, precisamos analisar arquivos reais exportados do Audaces 7.
 
+A amostra `CALCA JEANS MASC.ads` confirmou a assinatura `CADZ vs6.0`, imagem
+JPEG embutida no cabecalho, bloco `LIG` apos a imagem e nomes das pecas em
+blocos separados. O mesmo modelo tambem possui `.txt` com metadados/medidas e
+`.wmf` com visual vetorial, formando o principal conjunto de validacao.
+
+Conjunto principal de validacao:
+
+```text
+CALCA JEANS MASC.ads  -> geometria binaria e nomes das pecas
+CALCA JEANS MASC.txt  -> tamanhos, areas e perimetros oficiais
+CALCA JEANS MASC.wmf  -> visual vetorial para conferencia
+```
+
 Fluxo ideal:
 
 ```text
