@@ -67,6 +67,68 @@ v
 MoldeLab libera acesso
 ```
 
+## Protecao Contra Cobranca Duplicada
+
+O botao de pagar deve ser protegido contra duplo clique. Um usuario nao pode
+ser cobrado duas vezes se clicar no botao rapidamente ou se a rede repetir a
+requisicao.
+
+Regra obrigatoria no frontend:
+
+```text
+Usuario clica pagar
+v
+Botao entra em loading
+v
+Botao fica disabled
+v
+Cliques seguintes sao ignorados
+v
+Frontend aguarda resposta da API
+```
+
+Regra obrigatoria no backend:
+
+```text
+Recebe tentativa de checkout
+v
+Usa order_id/payment_attempt_id/idempotency_key
+v
+Se tentativa ja existe, retorna a mesma sessao
+v
+Se tentativa nao existe, cria uma nova sessao
+v
+Nunca cria duas cobrancas para o mesmo pedido
+```
+
+Campos recomendados:
+
+```sql
+checkout_attempts
+- id
+- user_id
+- plan_id
+- order_id
+- idempotency_key
+- provider
+- provider_checkout_id
+- status
+- created_at
+- updated_at
+```
+
+No webhook, o backend tambem deve ser idempotente:
+
+- se o mesmo evento chegar duas vezes, processar uma vez so
+- salvar `provider_event_id`
+- nao liberar assinatura duplicada
+- nao criar pagamento duplicado
+- registrar eventos repetidos como ignorados
+
+Essa protecao deve existir mesmo usando Mercado Pago, Stripe ou outro gateway.
+Desabilitar o botao no frontend ajuda a experiencia, mas a garantia real fica
+no backend.
+
 ## Planos Possiveis
 
 ```text
