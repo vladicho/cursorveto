@@ -56,6 +56,7 @@ index.html        Interface principal
 styles.css        Estilos
 app.js            Editor, nesting, digitalizacao e importadores
 IMPORTADORES.md   Arquitetura dos importadores
+PRODUCT_STRATEGY.md Estrategia para superar sistemas legados
 QUALITY_ASSURANCE.md Checklist de controle de qualidade
 SAAS_BILLING.md   Plano de login, assinaturas e pagamento
 WINDOWS_APP.md    Plano para aplicativo nativo Windows
@@ -66,6 +67,12 @@ WINDOWS_APP.md    Plano para aplicativo nativo Windows
 Antes de producao, o MoldeLab deve passar por controle de qualidade cobrindo
 editor, importadores, digitalizacao, autenticacao, pagamento, seguranca,
 performance, backup e deploy.
+
+## Estrategia de Produto
+
+O objetivo do MoldeLab nao e apenas copiar sistemas legados de modelagem, mas
+ser melhor em usabilidade, digitalizacao, nuvem, interoperabilidade, nesting
+visual, app Windows e fluxo comercial para pequenas e medias confeccoes.
 
 ## Roadmap SaaS
 
