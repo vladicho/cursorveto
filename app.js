@@ -3,6 +3,7 @@ const ctx = canvas.getContext("2d");
 
 const ui = {
   fabricWidth: document.querySelector("#fabricWidth"),
+  fabricType: document.querySelector("#fabricType"),
   spacing: document.querySelector("#spacing"),
   vectorInput: document.querySelector("#vectorInput"),
   importStatus: document.querySelector("#importStatus"),
@@ -310,6 +311,7 @@ function drawRulers(width) {
 
 function drawFabric() {
   const width = Number(ui.fabricWidth.value);
+  const isTubular = ui.fabricType.value === "tubular";
   const [x, y] = worldToScreen([0, 0]);
   const w = width * baseScale * view.zoom;
   const h = fabricHeight * baseScale * view.zoom;
@@ -338,6 +340,39 @@ function drawFabric() {
   }
 
   drawRulers(width);
+
+  ctx.fillStyle = "#5d6966";
+  ctx.font = "13px Arial";
+  ctx.textAlign = "right";
+  ctx.fillText(isTubular ? "Tecido tubular" : "Tecido plano", x + w, y - 14);
+
+  if (isTubular) {
+    ctx.save();
+    ctx.setLineDash([9, 7]);
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y + h);
+    ctx.moveTo(x + w, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#111827";
+    ctx.font = "700 12px Arial";
+    ctx.textAlign = "center";
+    ctx.save();
+    ctx.translate(x + 14, y + h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("DOBRA TUBULAR", 0, 0);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(x + w - 10, y + h / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("DOBRA TUBULAR", 0, 0);
+    ctx.restore();
+    ctx.restore();
+  }
 }
 
 function drawVertices(piece) {
@@ -352,6 +387,36 @@ function drawVertices(piece) {
     ctx.fill();
     ctx.stroke();
   });
+}
+
+function drawGrainline(points) {
+  const box = bounds(points);
+  const centerX = (box.minX + box.maxX) / 2;
+  const y1 = box.minY + (box.maxY - box.minY) * 0.25;
+  const y2 = box.minY + (box.maxY - box.minY) * 0.75;
+  const start = worldToScreen([centerX, y1]);
+  const end = worldToScreen([centerX, y2]);
+
+  ctx.save();
+  ctx.strokeStyle = "#1d4ed8";
+  ctx.fillStyle = "#1d4ed8";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(start[0], start[1]);
+  ctx.lineTo(end[0], end[1]);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(end[0], end[1]);
+  ctx.lineTo(end[0] - 7, end[1] - 10);
+  ctx.lineTo(end[0] + 7, end[1] - 10);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.font = "700 11px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText("FIO", start[0], start[1] - 8);
+  ctx.restore();
 }
 
 function drawPiece(piece, hasCollision) {
@@ -375,6 +440,7 @@ function drawPiece(piece, hasCollision) {
   ctx.font = "700 13px Arial";
   ctx.textAlign = "left";
   ctx.fillText(piece.name, label[0], label[1]);
+  drawGrainline(points);
   drawVertices(piece);
 }
 
@@ -488,15 +554,28 @@ function draw() {
 function autoNest() {
   const spacing = Number(ui.spacing.value);
   const fabricWidth = Number(ui.fabricWidth.value);
+  const isTubular = ui.fabricType.value === "tubular";
   const ordered = [...pieces].sort((a, b) => polygonArea(transformedPoints(b)) - polygonArea(transformedPoints(a)));
   let cursorX = spacing;
   let cursorY = spacing;
   let rowHeight = 0;
+  let tubularLeftY = spacing;
+  let tubularRightY = spacing;
 
   ordered.forEach((piece) => {
+    if (piece.rotation !== 180) piece.rotation = 0;
     const box = bounds(transformedPoints({ ...piece, x: 0, y: 0 }));
     const width = box.maxX - box.minX;
     const height = box.maxY - box.minY;
+
+    if (isTubular && piece.mirrored) {
+      const useRightFold = tubularRightY < tubularLeftY;
+      piece.x = useRightFold ? fabricWidth - width - spacing - box.minX : spacing - box.minX;
+      piece.y = (useRightFold ? tubularRightY : tubularLeftY) - box.minY;
+      if (useRightFold) tubularRightY += height + spacing;
+      else tubularLeftY += height + spacing;
+      return;
+    }
 
     if (cursorX + width + spacing > fabricWidth) {
       cursorX = spacing;
@@ -1063,6 +1142,7 @@ ui.rotation.addEventListener("input", () => {
 });
 
 ui.fabricWidth.addEventListener("input", draw);
+ui.fabricType.addEventListener("change", draw);
 ui.spacing.addEventListener("input", draw);
 ui.autoNest.addEventListener("click", autoNest);
 ui.exportSvg.addEventListener("click", exportSvg);

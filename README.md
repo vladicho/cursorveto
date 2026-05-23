@@ -18,6 +18,8 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Edicao de pontos
 - Zoom e pan
 - Regua em centimetros
+- Tipo de tecido: plano ou tubular
+- Seta de fio nas pecas
 - Espelhamento e rotacao de pecas
 - Encaixe automatico simples
 - Deteccao de sobreposicao
