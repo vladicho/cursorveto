@@ -56,9 +56,16 @@ index.html        Interface principal
 styles.css        Estilos
 app.js            Editor, nesting, digitalizacao e importadores
 IMPORTADORES.md   Arquitetura dos importadores
+QUALITY_ASSURANCE.md Checklist de controle de qualidade
 SAAS_BILLING.md   Plano de login, assinaturas e pagamento
 WINDOWS_APP.md    Plano para aplicativo nativo Windows
 ```
+
+## Qualidade
+
+Antes de producao, o MoldeLab deve passar por controle de qualidade cobrindo
+editor, importadores, digitalizacao, autenticacao, pagamento, seguranca,
+performance, backup e deploy.
 
 ## Roadmap SaaS
 
