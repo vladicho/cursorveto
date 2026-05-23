@@ -3,6 +3,10 @@
 MoldeLab e um prototipo web para modelagem de moldes vetoriais de vestuario,
 digitalizacao, nesting e importacao/exportacao de arquivos de risco.
 
+O projeto tambem deve evoluir para um aplicativo nativo de Windows, mantendo a
+mesma base visual do editor web e adicionando recursos offline, acesso a
+arquivos locais, impressoras, plotters e motores nativos de geometria.
+
 ## Recursos atuais
 
 - Editor 2D em canvas
@@ -49,4 +53,11 @@ index.html        Interface principal
 styles.css        Estilos
 app.js            Editor, nesting, digitalizacao e importadores
 IMPORTADORES.md   Arquitetura dos importadores
+WINDOWS_APP.md    Plano para aplicativo nativo Windows
 ```
+
+## Roadmap Windows
+
+A versao Windows deve ser empacotada futuramente com Tauri ou Electron. A
+preferencia inicial e Tauri por ser mais leve e permitir integrar Rust/C/C++
+para importadores, nesting e processamento geometrico pesado.
