@@ -61,7 +61,7 @@ index.html        Interface principal
 styles.css        Estilos
 app.js            Editor, nesting, digitalizacao e importadores
 IMPORTADORES.md   Arquitetura dos importadores
-GRADING.md        Estrategia de ampliacao/reducao por regras
+MANUAL_GRADING.md Estrategia de grade manual de tamanhos
 PRODUCT_STRATEGY.md Estrategia para superar sistemas legados
 QUALITY_ASSURANCE.md Checklist de controle de qualidade
 SAAS_BILLING.md   Plano de login, assinaturas e pagamento
