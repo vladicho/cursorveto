@@ -40,6 +40,7 @@ const ui = {
   seamAllowance: document.querySelector("#seamAllowance"),
   duplicatePiece: document.querySelector("#duplicatePiece"),
   deletePiece: document.querySelector("#deletePiece"),
+  toggleLockPiece: document.querySelector("#toggleLockPiece"),
   addNotch: document.querySelector("#addNotch"),
   deleteNotch: document.querySelector("#deleteNotch"),
   deletePoint: document.querySelector("#deletePoint"),
@@ -555,6 +556,16 @@ function drawPiece(piece, hasCollision) {
   ctx.fill();
   ctx.stroke();
 
+  if (piece.locked) {
+    ctx.save();
+    ctx.setLineDash([6, 5]);
+    ctx.strokeStyle = "#111827";
+    ctx.lineWidth = 1.5;
+    drawPolyline(points, true);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   const box = bounds(points);
   const label = worldToScreen([box.minX + 2, box.minY + 5]);
   ctx.fillStyle = "#1d2424";
@@ -586,10 +597,11 @@ function renderPieceList() {
       const notchCount = piece.notches?.length || 0;
       const seam = Number(piece.seamAllowance || 0).toFixed(1);
       const active = selectedId === piece.id ? " active" : "";
+      const lockLabel = piece.locked ? " · bloqueada" : "";
       const color = /^#[0-9a-f]{6}$/i.test(piece.color) ? piece.color : "#475569";
       return `<button class="piece-list-item${active}" data-piece-id="${piece.id}">
         <span><i style="background:${color}"></i>${index + 1}. ${escapeHtml(piece.name)}</span>
-        <small>${pointCount} pts · ${notchCount} piques · ${seam} cm</small>
+        <small>${pointCount} pts · ${notchCount} piques · ${seam} cm${lockLabel}</small>
       </button>`;
     })
     .join("");
@@ -610,6 +622,7 @@ function updateMetrics(collisions) {
   const piece = selectedPiece();
   ui.selectionName.textContent = piece ? piece.name : "Nenhuma peca";
   ui.pieceName.value = piece ? piece.name : "";
+  ui.toggleLockPiece.textContent = piece?.locked ? "Desbloquear peca" : "Bloquear peca";
   if (document.activeElement !== ui.seamAllowance) {
     ui.seamAllowance.value = piece ? Number(piece.seamAllowance || 0).toFixed(1) : 0;
   }
@@ -770,6 +783,7 @@ function autoNest() {
   let tubularRightY = spacing;
 
   ordered.forEach((piece) => {
+    if (piece.locked) return;
     piece.rotation = Number(piece.grainAngle || 0) % 360;
     const box = bounds(transformedPoints({ ...piece, x: 0, y: 0 }));
     const width = box.maxX - box.minX;
@@ -1093,6 +1107,7 @@ function projectSnapshot() {
       grainAngle: piece.grainAngle || 0,
       seamAllowance: Number(piece.seamAllowance) || 0,
       mirrored: Boolean(piece.mirrored),
+      locked: Boolean(piece.locked),
       color: piece.color,
       points: piece.points.map(([x, y]) => [x, y]),
       notches: [...(piece.notches || [])],
@@ -1133,6 +1148,7 @@ function restoreSnapshot(snapshot) {
       grainAngle: Number(piece.grainAngle) || 0,
       seamAllowance: Number(piece.seamAllowance) || 0,
       mirrored: Boolean(piece.mirrored),
+      locked: Boolean(piece.locked),
       color: piece.color || "#475569",
       points: Array.isArray(piece.points) ? piece.points.map(([x, y]) => [Number(x) || 0, Number(y) || 0]) : [],
       notches: Array.isArray(piece.notches) ? piece.notches.map(Number).filter(Number.isInteger) : [],
@@ -1206,6 +1222,7 @@ function openProject(file) {
           grainAngle: Number(piece.grainAngle) || 0,
           seamAllowance: Number(piece.seamAllowance) || 0,
           mirrored: Boolean(piece.mirrored),
+          locked: Boolean(piece.locked),
           color: piece.color || "#475569",
           points: Array.isArray(piece.points) ? piece.points.map(([x, y]) => [Number(x) || 0, Number(y) || 0]) : [],
           notches: Array.isArray(piece.notches) ? piece.notches.map(Number).filter(Number.isInteger) : [],
@@ -1254,6 +1271,7 @@ function addPiece() {
     grainAngle: 0,
     seamAllowance: 0,
     mirrored: false,
+    locked: false,
     color: "#0891b2",
     notches: [],
     points: [
@@ -1281,6 +1299,7 @@ function duplicateSelectedPiece() {
     name: `${source.name} copia`,
     x: source.x + 8,
     y: source.y + 8,
+    locked: false,
     points: source.points.map(([x, y]) => [x, y]),
     notches: [...(source.notches || [])],
   };
@@ -1294,6 +1313,10 @@ function duplicateSelectedPiece() {
 function renameSelectedPiece() {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de renomear.");
+    return;
+  }
   const nextName = ui.pieceName.value.trim();
   if (!nextName) return;
   if (piece.name === nextName) return;
@@ -1305,6 +1328,11 @@ function renameSelectedPiece() {
 function updateSelectedSeamAllowance() {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de alterar a margem.");
+    ui.seamAllowance.value = Number(piece.seamAllowance || 0).toFixed(1);
+    return;
+  }
   const nextAllowance = Math.max(0, Number(ui.seamAllowance.value) || 0);
   if (piece.seamAllowance === nextAllowance) return;
   recordHistory();
@@ -1312,9 +1340,23 @@ function updateSelectedSeamAllowance() {
   draw();
 }
 
+function toggleSelectedPieceLock() {
+  const piece = selectedPiece();
+  if (!piece) return;
+  recordHistory();
+  piece.locked = !piece.locked;
+  selectedPointIndex = null;
+  updateImportStatus(piece.locked ? `Peca bloqueada: ${piece.name}.` : `Peca desbloqueada: ${piece.name}.`);
+  draw();
+}
+
 function deleteSelectedPiece() {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de apagar.");
+    return;
+  }
   const confirmed = window.confirm(`Apagar a peca "${piece.name}"?`);
   if (!confirmed) return;
   const index = pieces.findIndex((item) => item.id === piece.id);
@@ -1336,6 +1378,10 @@ function deleteSelectedPoint() {
     updateImportStatus("A peca precisa manter pelo menos 3 pontos.");
     return;
   }
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de apagar pontos.");
+    return;
+  }
   recordHistory();
   piece.points.splice(selectedPointIndex, 1);
   piece.notches = (piece.notches || [])
@@ -1350,6 +1396,10 @@ function addNotchToSelectedPoint() {
   const piece = selectedPiece();
   if (!piece || selectedPointIndex === null) {
     updateImportStatus("Selecione um ponto no modo Pontos para adicionar pique.");
+    return;
+  }
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de adicionar pique.");
     return;
   }
   piece.notches = piece.notches || [];
@@ -1367,6 +1417,10 @@ function deleteNotchFromSelectedPoint() {
   const piece = selectedPiece();
   if (!piece || selectedPointIndex === null) {
     updateImportStatus("Selecione um ponto com pique para apagar.");
+    return;
+  }
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de apagar pique.");
     return;
   }
   const before = piece.notches?.length || 0;
@@ -1461,6 +1515,7 @@ function createImportedPiece(points, name) {
     grainAngle: 0,
     seamAllowance: 0,
     mirrored: false,
+    locked: false,
     color: "#475569",
     notches: [],
     points: normalized.points,
@@ -1699,6 +1754,7 @@ function finishTrace() {
     grainAngle: 0,
     seamAllowance: 0,
     mirrored: false,
+    locked: false,
     color: "#0891b2",
     notches: [],
     points,
@@ -1768,6 +1824,10 @@ canvas.addEventListener("pointerdown", (event) => {
   if (mode === "points") {
     const vertex = vertexAt(screen);
     if (vertex) {
+      if (vertex.piece.locked) {
+        updateImportStatus("Desbloqueie a peca antes de editar pontos.");
+        return;
+      }
       recordHistory();
       selectedPointIndex = vertex.index;
       dragState = { type: "vertex", pieceId: vertex.piece.id, pointIndex: vertex.index };
@@ -1778,6 +1838,10 @@ canvas.addEventListener("pointerdown", (event) => {
 
     const edge = edgeAt(screen);
     if (edge) {
+      if (edge.piece.locked) {
+        updateImportStatus("Desbloqueie a peca antes de inserir ponto.");
+        return;
+      }
       recordHistory();
       const localPoint = inverseTransformedPoint(edge.piece, point);
       edge.piece.points.splice(edge.insertAfter + 1, 0, localPoint);
@@ -1796,6 +1860,11 @@ canvas.addEventListener("pointerdown", (event) => {
   selectedId = piece.id;
   selectedPointIndex = null;
   if (mode === "move") {
+    if (piece.locked) {
+      updateImportStatus("Peca bloqueada. Desbloqueie antes de mover.");
+      draw();
+      return;
+    }
     recordHistory();
     dragState = {
       type: "piece",
@@ -1906,6 +1975,10 @@ ui.resetView.addEventListener("click", () => {
 ui.rotateLeft.addEventListener("click", () => {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de girar.");
+    return;
+  }
   recordHistory();
   piece.rotation = (piece.rotation + 345) % 360;
   draw();
@@ -1914,6 +1987,10 @@ ui.rotateLeft.addEventListener("click", () => {
 ui.rotateRight.addEventListener("click", () => {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de girar.");
+    return;
+  }
   recordHistory();
   piece.rotation = (piece.rotation + 15) % 360;
   draw();
@@ -1922,6 +1999,10 @@ ui.rotateRight.addEventListener("click", () => {
 ui.mirrorPiece.addEventListener("click", () => {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de espelhar.");
+    return;
+  }
   recordHistory();
   piece.mirrored = !piece.mirrored;
   draw();
@@ -1929,6 +2010,7 @@ ui.mirrorPiece.addEventListener("click", () => {
 
 ui.duplicatePiece.addEventListener("click", duplicateSelectedPiece);
 ui.deletePiece.addEventListener("click", deleteSelectedPiece);
+ui.toggleLockPiece.addEventListener("click", toggleSelectedPieceLock);
 ui.addNotch.addEventListener("click", addNotchToSelectedPoint);
 ui.deleteNotch.addEventListener("click", deleteNotchFromSelectedPoint);
 ui.deletePoint.addEventListener("click", deleteSelectedPoint);
@@ -1938,6 +2020,11 @@ ui.seamAllowance.addEventListener("input", updateSelectedSeamAllowance);
 ui.rotation.addEventListener("input", () => {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de girar.");
+    ui.rotation.value = piece.rotation;
+    return;
+  }
   if (piece.rotation === Number(ui.rotation.value)) return;
   recordHistory();
   piece.rotation = Number(ui.rotation.value);
@@ -1947,6 +2034,11 @@ ui.rotation.addEventListener("input", () => {
 ui.grainAngle.addEventListener("change", () => {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de alterar o fio.");
+    ui.grainAngle.value = String(piece.grainAngle || 0);
+    return;
+  }
   if (piece.grainAngle === Number(ui.grainAngle.value)) return;
   recordHistory();
   piece.grainAngle = Number(ui.grainAngle.value);

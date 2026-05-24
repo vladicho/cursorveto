@@ -16,6 +16,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Criacao de moldes do zero por pontos
 - Pecas vetoriais arrastaveis
 - Lista de pecas para selecao rapida
+- Bloqueio de pecas para evitar edicao ou encaixe acidental
 - Renomear, duplicar e apagar pecas para grade manual
 - Edicao, insercao e remocao de pontos
 - Piques de costura nos pontos da peca
