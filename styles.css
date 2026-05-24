@@ -373,6 +373,11 @@ button kbd {
   font-weight: 600;
 }
 
+.context-menu button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 button:hover {
   border-color: var(--accent);
 }

@@ -673,18 +673,23 @@ function closePieceContextMenu() {
 function updatePieceContextMenu() {
   const piece = selectedPiece();
   const lockButton = ui.pieceContextMenu.querySelector('[data-context-action="lock"]');
+  const pointButtons = ui.pieceContextMenu.querySelectorAll('[data-context-action="add-notch"], [data-context-action="delete-notch"], [data-context-action="delete-point"]');
   if (!piece || !lockButton) return;
   lockButton.innerHTML = piece.locked
     ? iconButtonMarkup("unlock", "Desbloquear peca")
     : iconButtonMarkup("lock", "Bloquear peca");
+  pointButtons.forEach((button) => {
+    button.disabled = selectedPointIndex === null;
+  });
   refreshIcons();
 }
 
 function openPieceContextMenu(event, piece) {
   closeMenus();
   selectedId = piece.id;
-  selectedPointIndex = null;
-  mode = "move";
+  const vertex = vertexAt(eventScreen(event));
+  selectedPointIndex = vertex?.piece.id === piece.id ? vertex.index : null;
+  mode = selectedPointIndex === null ? "move" : "points";
   updatePieceContextMenu();
   ui.pieceContextMenu.hidden = false;
   const rect = ui.pieceContextMenu.getBoundingClientRect();
@@ -2437,6 +2442,11 @@ ui.pieceContextMenu.addEventListener("click", (event) => {
     mirror: () => ui.mirrorPiece.click(),
     origin: () => ui.fitPieceOrigin.click(),
     "center-width": () => ui.centerPieceWidth.click(),
+    left: () => ui.alignPieceLeft.click(),
+    top: () => ui.alignPieceTop.click(),
+    "add-notch": () => ui.addNotch.click(),
+    "delete-notch": () => ui.deleteNotch.click(),
+    "delete-point": () => ui.deletePoint.click(),
   };
   actions[button.dataset.contextAction]?.();
   closePieceContextMenu();
