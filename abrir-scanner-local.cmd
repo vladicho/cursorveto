@@ -22,6 +22,6 @@ if not defined NODE_EXE (
   exit /b 1
 )
 
-start "" "http://localhost:8787"
+set "MOLDELAB_OPEN_BROWSER=1"
 "%NODE_EXE%" scanner-server.js
 pause

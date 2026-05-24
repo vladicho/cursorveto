@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const childProcess = require("child_process");
 const fs = require("fs");
 const http = require("http");
 const os = require("os");
@@ -361,8 +362,19 @@ server.on("upgrade", (request, socket) => {
   socket.destroy();
 });
 
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(`Porta ${port} ja esta em uso. Se o MoldeLab ja estiver aberto, use http://localhost:${port}.`);
+    return;
+  }
+  console.error("Nao foi possivel iniciar o servidor local:", error.message);
+});
+
 server.listen(port, "0.0.0.0", () => {
   console.log(`MoldeLab local: http://localhost:${port}`);
   console.log(`Scanner mobile: ${mobileUrl()}`);
   console.log("Abra o MoldeLab pelo endereco local e leia o QR Code pelo celular.");
+  if (process.env.MOLDELAB_OPEN_BROWSER === "1") {
+    childProcess.exec(`start "" "http://localhost:${port}"`);
+  }
 });

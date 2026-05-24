@@ -94,7 +94,8 @@ Exportacao atual:
 
 ## Como abrir
 
-Abra `index.html` no navegador ou execute `abrir-moldelab.cmd` no Windows.
+Execute `abrir-moldelab.cmd` no Windows. Esse atalho inicia o servidor local e
+abre `http://localhost:8787`, necessario para o QR Code e o scanner pelo celular.
 
 ## Estrutura
 
