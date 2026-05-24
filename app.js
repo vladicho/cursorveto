@@ -2638,6 +2638,56 @@ function simplifyContour(points, minDistance) {
   });
 }
 
+function scanlineContour(component, width, height) {
+  const rowBounds = new Map();
+  const colBounds = new Map();
+
+  component.forEach((index) => {
+    const x = index % width;
+    const y = Math.floor(index / width);
+    const row = rowBounds.get(y) || { min: x, max: x };
+    row.min = Math.min(row.min, x);
+    row.max = Math.max(row.max, x);
+    rowBounds.set(y, row);
+    const col = colBounds.get(x) || { min: y, max: y };
+    col.min = Math.min(col.min, y);
+    col.max = Math.max(col.max, y);
+    colBounds.set(x, col);
+  });
+
+  const rows = [...rowBounds.keys()].sort((a, b) => a - b);
+  const cols = [...colBounds.keys()].sort((a, b) => a - b);
+  const rowStep = Math.max(1, Math.round(rows.length / 120));
+  const colStep = Math.max(1, Math.round(cols.length / 60));
+  const topEdge = [];
+  const rightEdge = [];
+  const bottomEdge = [];
+  const leftEdge = [];
+
+  for (let index = 0; index < cols.length; index += colStep) {
+    const x = cols[index];
+    const boundsForCol = colBounds.get(x);
+    topEdge.push({ x, y: boundsForCol.min });
+  }
+  for (let index = 0; index < rows.length; index += rowStep) {
+    const y = rows[index];
+    const boundsForRow = rowBounds.get(y);
+    rightEdge.push({ x: boundsForRow.max, y });
+  }
+  for (let index = cols.length - 1; index >= 0; index -= colStep) {
+    const x = cols[index];
+    const boundsForCol = colBounds.get(x);
+    bottomEdge.push({ x, y: boundsForCol.max });
+  }
+  for (let index = rows.length - 1; index >= 0; index -= rowStep) {
+    const y = rows[index];
+    const boundsForRow = rowBounds.get(y);
+    leftEdge.push({ x: boundsForRow.min, y });
+  }
+
+  return simplifyContour([...topEdge, ...rightEdge, ...bottomEdge, ...leftEdge], Math.max(2, Math.min(width, height) * 0.008));
+}
+
 function colorDistance(a, b) {
   return Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
 }
@@ -2705,36 +2755,8 @@ function traceImageContour() {
     return;
   }
 
-  const center = bestComponent.reduce(
-    (acc, index) => [acc[0] + (index % width), acc[1] + Math.floor(index / width)],
-    [0, 0],
-  );
-  center[0] /= bestComponent.length;
-  center[1] /= bestComponent.length;
-
-  const border = boundaryPixels(bestComponent, width, height);
-  const binCount = 144;
-  const bins = Array.from({ length: binCount }, () => null);
-  border.forEach((index) => {
-    const x = index % width;
-    const y = Math.floor(index / width);
-    const angle = (Math.atan2(y - center[1], x - center[0]) + Math.PI * 2) % (Math.PI * 2);
-    const bin = Math.floor((angle / (Math.PI * 2)) * binCount);
-    const distance = Math.hypot(x - center[0], y - center[1]);
-    if (!bins[bin] || distance > bins[bin].distance) bins[bin] = { x, y, distance };
-  });
-
-  const rawPoints = bins
-    .filter(Boolean)
-    .map((point, index, points) => {
-      const previous = points[(index - 1 + points.length) % points.length];
-      const next = points[(index + 1) % points.length];
-      return {
-        x: (previous.x + point.x * 2 + next.x) / 4,
-        y: (previous.y + point.y * 2 + next.y) / 4,
-      };
-    });
-  const simplifiedPoints = simplifyContour(rawPoints, Math.max(3, Math.min(width, height) * 0.012));
+  const scannedPoints = scanlineContour(bestComponent, width, height);
+  const simplifiedPoints = simplifyContour(scannedPoints, Math.max(3, Math.min(width, height) * 0.012));
   const tracedPoints = simplifiedPoints
     .map(({ x, y }) => [
       background.x + (x / width) * background.widthCm,
