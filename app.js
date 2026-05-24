@@ -23,6 +23,8 @@ const ui = {
   modeTrace: document.querySelector("#modeTrace"),
   modeMeasure: document.querySelector("#modeMeasure"),
   finishTrace: document.querySelector("#finishTrace"),
+  undoAction: document.querySelector("#undoAction"),
+  redoAction: document.querySelector("#redoAction"),
   zoomOut: document.querySelector("#zoomOut"),
   zoomIn: document.querySelector("#zoomIn"),
   resetView: document.querySelector("#resetView"),
@@ -65,6 +67,9 @@ let background = null;
 let calibrationPoints = [];
 let contourPoints = [];
 let measurePoints = [];
+let undoStack = [];
+let redoStack = [];
+let historySuspended = false;
 
 const pieces = [
   {
@@ -591,6 +596,8 @@ function updateModeButtons() {
   ui.modeCalibrate.classList.toggle("active", mode === "calibrate");
   ui.modeTrace.classList.toggle("active", mode === "trace");
   ui.modeMeasure.classList.toggle("active", mode === "measure");
+  ui.undoAction.disabled = undoStack.length === 0;
+  ui.redoAction.disabled = redoStack.length === 0;
   canvas.style.cursor = mode === "pan" ? "grab" : mode === "move" ? "move" : "crosshair";
 }
 
@@ -721,6 +728,7 @@ function draw() {
 }
 
 function autoNest() {
+  recordHistory();
   const spacing = Number(ui.spacing.value);
   const fabricWidth = Number(ui.fabricWidth.value);
   const isTubular = ui.fabricType.value === "tubular";
@@ -1045,6 +1053,7 @@ function projectSnapshot() {
       digitizedCount,
       importedCount,
     },
+    selectedId,
     pieces: pieces.map((piece) => ({
       id: piece.id,
       name: piece.name,
@@ -1070,6 +1079,74 @@ function saveProject() {
   downloadFile(JSON.stringify(snapshot, null, 2), `${safeName}.moldelab.json`, "application/json");
 }
 
+function cloneSnapshot(snapshot) {
+  return JSON.parse(JSON.stringify(snapshot));
+}
+
+function restoreSnapshot(snapshot) {
+  historySuspended = true;
+  const data = cloneSnapshot(snapshot);
+  ui.projectName.value = data.projectName || "MoldeLab Projeto";
+  ui.fabricType.value = data.fabric?.type || "flat";
+  ui.fabricWidth.value = data.fabric?.width || 150;
+  ui.spacing.value = data.fabric?.spacing || 2;
+
+  pieces.splice(
+    0,
+    pieces.length,
+    ...data.pieces.map((piece, index) => ({
+      id: piece.id || `restored-${index + 1}`,
+      name: piece.name || `Peca ${index + 1}`,
+      x: Number(piece.x) || 0,
+      y: Number(piece.y) || 0,
+      rotation: Number(piece.rotation) || 0,
+      grainAngle: Number(piece.grainAngle) || 0,
+      seamAllowance: Number(piece.seamAllowance) || 0,
+      mirrored: Boolean(piece.mirrored),
+      color: piece.color || "#475569",
+      points: Array.isArray(piece.points) ? piece.points.map(([x, y]) => [Number(x) || 0, Number(y) || 0]) : [],
+      notches: Array.isArray(piece.notches) ? piece.notches.map(Number).filter(Number.isInteger) : [],
+    })).filter((piece) => piece.points.length >= 3)
+      .map((piece) => ({
+        ...piece,
+        notches: piece.notches.filter((pointIndex) => pointIndex >= 0 && pointIndex < piece.points.length),
+      })),
+  );
+
+  newPieceCount = data.counters?.newPieceCount || 1;
+  digitizedCount = data.counters?.digitizedCount || 1;
+  importedCount = data.counters?.importedCount || 1;
+  selectedId = pieces.some((piece) => piece.id === data.selectedId) ? data.selectedId : pieces[0]?.id || null;
+  selectedPointIndex = null;
+  contourPoints = [];
+  calibrationPoints = [];
+  measurePoints = [];
+  historySuspended = false;
+}
+
+function recordHistory() {
+  if (historySuspended) return;
+  undoStack.push(cloneSnapshot(projectSnapshot()));
+  if (undoStack.length > 80) undoStack.shift();
+  redoStack = [];
+}
+
+function undoAction() {
+  if (!undoStack.length) return;
+  redoStack.push(cloneSnapshot(projectSnapshot()));
+  restoreSnapshot(undoStack.pop());
+  updateImportStatus("Alteracao desfeita.");
+  draw();
+}
+
+function redoAction() {
+  if (!redoStack.length) return;
+  undoStack.push(cloneSnapshot(projectSnapshot()));
+  restoreSnapshot(redoStack.pop());
+  updateImportStatus("Alteracao refeita.");
+  draw();
+}
+
 function openProject(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -1080,6 +1157,7 @@ function openProject(file) {
         updateImportStatus("Arquivo de projeto invalido.");
         return;
       }
+      recordHistory();
 
       ui.projectName.value = data.projectName || "MoldeLab Projeto";
       ui.fabricType.value = data.fabric?.type || "flat";
@@ -1135,6 +1213,7 @@ function setZoom(nextZoom, anchor = [canvas.width / 2, canvas.height / 2]) {
 }
 
 function addPiece() {
+  recordHistory();
   const id = `custom-${newPieceCount}`;
   pieces.push({
     id,
@@ -1164,6 +1243,7 @@ function addPiece() {
 function duplicateSelectedPiece() {
   const source = selectedPiece();
   if (!source) return;
+  recordHistory();
   const id = `copy-${Date.now()}`;
   const copy = {
     ...source,
@@ -1186,6 +1266,8 @@ function renameSelectedPiece() {
   if (!piece) return;
   const nextName = ui.pieceName.value.trim();
   if (!nextName) return;
+  if (piece.name === nextName) return;
+  recordHistory();
   piece.name = nextName;
   draw();
 }
@@ -1193,7 +1275,10 @@ function renameSelectedPiece() {
 function updateSelectedSeamAllowance() {
   const piece = selectedPiece();
   if (!piece) return;
-  piece.seamAllowance = Math.max(0, Number(ui.seamAllowance.value) || 0);
+  const nextAllowance = Math.max(0, Number(ui.seamAllowance.value) || 0);
+  if (piece.seamAllowance === nextAllowance) return;
+  recordHistory();
+  piece.seamAllowance = nextAllowance;
   draw();
 }
 
@@ -1204,6 +1289,7 @@ function deleteSelectedPiece() {
   if (!confirmed) return;
   const index = pieces.findIndex((item) => item.id === piece.id);
   if (index === -1) return;
+  recordHistory();
   pieces.splice(index, 1);
   selectedId = pieces[Math.max(0, index - 1)]?.id || pieces[0]?.id || null;
   updateImportStatus(`Peca apagada: ${piece.name}`);
@@ -1220,6 +1306,7 @@ function deleteSelectedPoint() {
     updateImportStatus("A peca precisa manter pelo menos 3 pontos.");
     return;
   }
+  recordHistory();
   piece.points.splice(selectedPointIndex, 1);
   piece.notches = (piece.notches || [])
     .filter((pointIndex) => pointIndex !== selectedPointIndex)
@@ -1240,6 +1327,7 @@ function addNotchToSelectedPoint() {
     updateImportStatus("Este ponto ja tem pique.");
     return;
   }
+  recordHistory();
   piece.notches.push(selectedPointIndex);
   updateImportStatus(`Pique adicionado em ${piece.name}.`);
   draw();
@@ -1252,6 +1340,11 @@ function deleteNotchFromSelectedPoint() {
     return;
   }
   const before = piece.notches?.length || 0;
+  if (!piece.notches?.includes(selectedPointIndex)) {
+    updateImportStatus("Este ponto nao tem pique.");
+    return;
+  }
+  recordHistory();
   piece.notches = (piece.notches || []).filter((pointIndex) => pointIndex !== selectedPointIndex);
   updateImportStatus(before === piece.notches.length ? "Este ponto nao tem pique." : `Pique apagado de ${piece.name}.`);
   draw();
@@ -1509,6 +1602,7 @@ function importVectorFile(file) {
   const reader = new FileReader();
   reader.onload = () => {
     const text = String(reader.result);
+    if (["svg", "dxf", "plt"].includes(extension)) recordHistory();
     if (extension === "svg") importSvg(text);
     else if (extension === "dxf") importDxf(text);
     else if (extension === "plt") importPlt(text);
@@ -1561,6 +1655,7 @@ function finishTrace() {
     updateDigitizeStatus("Marque pelo menos 3 pontos para criar uma peca.");
     return;
   }
+  recordHistory();
   const box = bounds(contourPoints);
   const points = contourPoints.map(([x, y]) => [x - box.minX, y - box.minY]);
   const isDrawn = mode === "draw";
@@ -1643,6 +1738,7 @@ canvas.addEventListener("pointerdown", (event) => {
   if (mode === "points") {
     const vertex = vertexAt(screen);
     if (vertex) {
+      recordHistory();
       selectedPointIndex = vertex.index;
       dragState = { type: "vertex", pieceId: vertex.piece.id, pointIndex: vertex.index };
       canvas.setPointerCapture(event.pointerId);
@@ -1652,6 +1748,7 @@ canvas.addEventListener("pointerdown", (event) => {
 
     const edge = edgeAt(screen);
     if (edge) {
+      recordHistory();
       const localPoint = inverseTransformedPoint(edge.piece, point);
       edge.piece.points.splice(edge.insertAfter + 1, 0, localPoint);
       edge.piece.notches = (edge.piece.notches || []).map((pointIndex) =>
@@ -1669,6 +1766,7 @@ canvas.addEventListener("pointerdown", (event) => {
   selectedId = piece.id;
   selectedPointIndex = null;
   if (mode === "move") {
+    recordHistory();
     dragState = {
       type: "piece",
       pieceId: piece.id,
@@ -1777,18 +1875,24 @@ ui.resetView.addEventListener("click", () => {
 
 ui.rotateLeft.addEventListener("click", () => {
   const piece = selectedPiece();
+  if (!piece) return;
+  recordHistory();
   piece.rotation = (piece.rotation + 345) % 360;
   draw();
 });
 
 ui.rotateRight.addEventListener("click", () => {
   const piece = selectedPiece();
+  if (!piece) return;
+  recordHistory();
   piece.rotation = (piece.rotation + 15) % 360;
   draw();
 });
 
 ui.mirrorPiece.addEventListener("click", () => {
   const piece = selectedPiece();
+  if (!piece) return;
+  recordHistory();
   piece.mirrored = !piece.mirrored;
   draw();
 });
@@ -1804,6 +1908,8 @@ ui.seamAllowance.addEventListener("input", updateSelectedSeamAllowance);
 ui.rotation.addEventListener("input", () => {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.rotation === Number(ui.rotation.value)) return;
+  recordHistory();
   piece.rotation = Number(ui.rotation.value);
   draw();
 });
@@ -1811,14 +1917,25 @@ ui.rotation.addEventListener("input", () => {
 ui.grainAngle.addEventListener("change", () => {
   const piece = selectedPiece();
   if (!piece) return;
+  if (piece.grainAngle === Number(ui.grainAngle.value)) return;
+  recordHistory();
   piece.grainAngle = Number(ui.grainAngle.value);
   piece.rotation = piece.grainAngle % 360;
   draw();
 });
 
-ui.fabricWidth.addEventListener("input", draw);
-ui.fabricType.addEventListener("change", draw);
-ui.spacing.addEventListener("input", draw);
+ui.fabricWidth.addEventListener("input", () => {
+  recordHistory();
+  draw();
+});
+ui.fabricType.addEventListener("change", () => {
+  recordHistory();
+  draw();
+});
+ui.spacing.addEventListener("input", () => {
+  recordHistory();
+  draw();
+});
 ui.autoNest.addEventListener("click", autoNest);
 ui.saveProject.addEventListener("click", saveProject);
 ui.exportSvg.addEventListener("click", exportSvg);
@@ -1827,8 +1944,19 @@ ui.exportPlt.addEventListener("click", exportPlt);
 ui.exportMiniMarker.addEventListener("click", exportMiniMarker);
 ui.addPiece.addEventListener("click", addPiece);
 ui.finishTrace.addEventListener("click", finishTrace);
+ui.undoAction.addEventListener("click", undoAction);
+ui.redoAction.addEventListener("click", redoAction);
 ui.imageInput.addEventListener("change", (event) => importImage(event.target.files[0]));
 ui.vectorInput.addEventListener("change", (event) => importVectorFile(event.target.files[0]));
 ui.projectInput.addEventListener("change", (event) => openProject(event.target.files[0]));
+
+document.addEventListener("keydown", (event) => {
+  const isUndo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey;
+  const isRedo = (event.ctrlKey || event.metaKey) && (event.key.toLowerCase() === "y" || (event.shiftKey && event.key.toLowerCase() === "z"));
+  if (!isUndo && !isRedo) return;
+  event.preventDefault();
+  if (isUndo) undoAction();
+  if (isRedo) redoAction();
+});
 
 draw();

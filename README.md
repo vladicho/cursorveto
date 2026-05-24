@@ -19,6 +19,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Edicao, insercao e remocao de pontos
 - Piques de costura nos pontos da peca
 - Margem de costura visual por peca
+- Desfazer e refazer alteracoes do projeto
 - Zoom e pan
 - Regua em centimetros
 - Medicao de distancia em centimetros no canvas
