@@ -36,6 +36,8 @@ const ui = {
   pieceName: document.querySelector("#pieceName"),
   duplicatePiece: document.querySelector("#duplicatePiece"),
   deletePiece: document.querySelector("#deletePiece"),
+  addNotch: document.querySelector("#addNotch"),
+  deleteNotch: document.querySelector("#deleteNotch"),
   deletePoint: document.querySelector("#deletePoint"),
   rotation: document.querySelector("#rotation"),
   grainAngle: document.querySelector("#grainAngle"),
@@ -422,14 +424,51 @@ function drawVertices(piece) {
   if (mode !== "points" || selectedId !== piece.id) return;
   transformedPoints(piece).forEach((point, index) => {
     const [x, y] = worldToScreen(point);
+    const hasNotch = piece.notches?.includes(index);
     ctx.beginPath();
     ctx.arc(x, y, selectedPointIndex === index ? 8 : 6, 0, Math.PI * 2);
-    ctx.fillStyle = selectedPointIndex === index ? "#facc15" : index === 0 ? "#111827" : "#ffffff";
+    ctx.fillStyle = selectedPointIndex === index ? "#facc15" : hasNotch ? "#be123c" : index === 0 ? "#111827" : "#ffffff";
     ctx.strokeStyle = piece.color;
     ctx.lineWidth = 2;
     ctx.fill();
     ctx.stroke();
   });
+}
+
+function notchSegments(piece, points) {
+  return (piece.notches || [])
+    .filter((pointIndex) => pointIndex >= 0 && pointIndex < points.length)
+    .map((pointIndex) => {
+      const previous = points[(pointIndex - 1 + points.length) % points.length];
+      const current = points[pointIndex];
+      const next = points[(pointIndex + 1) % points.length];
+      const tangent = [next[0] - previous[0], next[1] - previous[1]];
+      const tangentLength = Math.hypot(tangent[0], tangent[1]) || 1;
+      const normal = [-tangent[1] / tangentLength, tangent[0] / tangentLength];
+      const length = 1.6;
+      return {
+        pointIndex,
+        start: [current[0] - normal[0] * length * 0.5, current[1] - normal[1] * length * 0.5],
+        end: [current[0] + normal[0] * length * 0.5, current[1] + normal[1] * length * 0.5],
+      };
+    });
+}
+
+function drawNotches(piece, points) {
+  const segments = notchSegments(piece, points);
+  if (!segments.length) return;
+  ctx.save();
+  ctx.strokeStyle = "#be123c";
+  ctx.lineWidth = 3;
+  segments.forEach(({ start, end }) => {
+    const a = worldToScreen(start);
+    const b = worldToScreen(end);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+  });
+  ctx.restore();
 }
 
 function drawGrainline(piece, points) {
@@ -487,6 +526,7 @@ function drawPiece(piece, hasCollision) {
   ctx.textAlign = "left";
   ctx.fillText(piece.name, label[0], label[1]);
   drawGrainline(piece, points);
+  drawNotches(piece, points);
   drawVertices(piece);
 }
 
@@ -692,7 +732,13 @@ function exportSvgMarkup() {
     .map((piece) => {
       const points = transformedPoints(piece);
       const d = points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
-      return `<path d="${d} Z" fill="${piece.color}22" stroke="${piece.color}" stroke-width="0.6"><title>${piece.name}</title></path>`;
+      const notches = notchSegments(piece, points)
+        .map(
+          ({ start, end }) =>
+            `<line x1="${start[0].toFixed(2)}" y1="${start[1].toFixed(2)}" x2="${end[0].toFixed(2)}" y2="${end[1].toFixed(2)}" stroke="#be123c" stroke-width="0.45"/>`,
+        )
+        .join("");
+      return `<g><path d="${d} Z" fill="${piece.color}22" stroke="${piece.color}" stroke-width="0.6"><title>${piece.name}</title></path>${notches}</g>`;
     })
     .join("\n  ");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${fabricWidth}cm" height="${fabricHeight}cm" viewBox="0 0 ${fabricWidth} ${fabricHeight}">
@@ -739,6 +785,9 @@ function exportDxfMarkup() {
     if (points.length < 3) return;
     lines.push(...dxfPolyline(points, "MOLDE_CONTORNO", true));
     lines.push(...dxfPolyline(pieceGrainlinePoints(piece, points), "MOLDE_FIO", false));
+    notchSegments(piece, points).forEach(({ start, end }) => {
+      lines.push(...dxfPolyline([start, end], "MOLDE_PIQUE", false));
+    });
   });
 
   lines.push(dxfPair(0, "ENDSEC"));
@@ -784,6 +833,14 @@ function exportPltMarkup() {
     commands.push(`PU${grainline[0][0]},${grainline[0][1]};`);
     commands.push(`PD${grainline[1][0]},${grainline[1][1]};`);
     commands.push("PU;");
+
+    notchSegments(piece, points).forEach(({ start, end }) => {
+      const notchStart = hpglPoint(start);
+      const notchEnd = hpglPoint(end);
+      commands.push(`PU${notchStart[0]},${notchStart[1]};`);
+      commands.push(`PD${notchEnd[0]},${notchEnd[1]};`);
+      commands.push("PU;");
+    });
   });
 
   commands.push("SP0;");
@@ -866,6 +923,15 @@ function exportMiniMarker() {
     out.fill();
     out.stroke();
 
+    out.strokeStyle = "#be123c";
+    out.lineWidth = 2;
+    notchSegments(piece, points).forEach(({ start, end }) => {
+      out.beginPath();
+      out.moveTo(ox + start[0] * previewScale, oy + start[1] * previewScale);
+      out.lineTo(ox + end[0] * previewScale, oy + end[1] * previewScale);
+      out.stroke();
+    });
+
     const box = bounds(points);
     out.fillStyle = "#111827";
     out.font = "700 16px Arial";
@@ -922,6 +988,7 @@ function projectSnapshot() {
       mirrored: Boolean(piece.mirrored),
       color: piece.color,
       points: piece.points.map(([x, y]) => [x, y]),
+      notches: [...(piece.notches || [])],
     })),
   };
 }
@@ -964,7 +1031,12 @@ function openProject(file) {
           mirrored: Boolean(piece.mirrored),
           color: piece.color || "#475569",
           points: Array.isArray(piece.points) ? piece.points.map(([x, y]) => [Number(x) || 0, Number(y) || 0]) : [],
-        })).filter((piece) => piece.points.length >= 3),
+          notches: Array.isArray(piece.notches) ? piece.notches.map(Number).filter(Number.isInteger) : [],
+        })).filter((piece) => piece.points.length >= 3)
+          .map((piece) => ({
+            ...piece,
+            notches: piece.notches.filter((pointIndex) => pointIndex >= 0 && pointIndex < piece.points.length),
+          })),
       );
 
       newPieceCount = data.counters?.newPieceCount || 1;
@@ -1004,6 +1076,7 @@ function addPiece() {
     grainAngle: 0,
     mirrored: false,
     color: "#0891b2",
+    notches: [],
     points: [
       [0, 0],
       [34, 0],
@@ -1029,6 +1102,7 @@ function duplicateSelectedPiece() {
     x: source.x + 8,
     y: source.y + 8,
     points: source.points.map(([x, y]) => [x, y]),
+    notches: [...(source.notches || [])],
   };
   pieces.push(copy);
   selectedId = id;
@@ -1070,8 +1144,39 @@ function deleteSelectedPoint() {
     return;
   }
   piece.points.splice(selectedPointIndex, 1);
+  piece.notches = (piece.notches || [])
+    .filter((pointIndex) => pointIndex !== selectedPointIndex)
+    .map((pointIndex) => (pointIndex > selectedPointIndex ? pointIndex - 1 : pointIndex));
   selectedPointIndex = null;
   updateImportStatus(`Ponto apagado de ${piece.name}.`);
+  draw();
+}
+
+function addNotchToSelectedPoint() {
+  const piece = selectedPiece();
+  if (!piece || selectedPointIndex === null) {
+    updateImportStatus("Selecione um ponto no modo Pontos para adicionar pique.");
+    return;
+  }
+  piece.notches = piece.notches || [];
+  if (piece.notches.includes(selectedPointIndex)) {
+    updateImportStatus("Este ponto ja tem pique.");
+    return;
+  }
+  piece.notches.push(selectedPointIndex);
+  updateImportStatus(`Pique adicionado em ${piece.name}.`);
+  draw();
+}
+
+function deleteNotchFromSelectedPoint() {
+  const piece = selectedPiece();
+  if (!piece || selectedPointIndex === null) {
+    updateImportStatus("Selecione um ponto com pique para apagar.");
+    return;
+  }
+  const before = piece.notches?.length || 0;
+  piece.notches = (piece.notches || []).filter((pointIndex) => pointIndex !== selectedPointIndex);
+  updateImportStatus(before === piece.notches.length ? "Este ponto nao tem pique." : `Pique apagado de ${piece.name}.`);
   draw();
 }
 
@@ -1156,6 +1261,7 @@ function createImportedPiece(points, name) {
     grainAngle: 0,
     mirrored: false,
     color: "#475569",
+    notches: [],
     points: normalized.points,
   });
   selectedId = id;
@@ -1390,6 +1496,7 @@ function finishTrace() {
     grainAngle: 0,
     mirrored: false,
     color: "#0891b2",
+    notches: [],
     points,
   });
   digitizedCount += 1;
@@ -1468,6 +1575,9 @@ canvas.addEventListener("pointerdown", (event) => {
     if (edge) {
       const localPoint = inverseTransformedPoint(edge.piece, point);
       edge.piece.points.splice(edge.insertAfter + 1, 0, localPoint);
+      edge.piece.notches = (edge.piece.notches || []).map((pointIndex) =>
+        pointIndex > edge.insertAfter ? pointIndex + 1 : pointIndex,
+      );
       selectedPointIndex = edge.insertAfter + 1;
       updateImportStatus(`Ponto inserido em ${edge.piece.name}.`);
       draw();
@@ -1606,6 +1716,8 @@ ui.mirrorPiece.addEventListener("click", () => {
 
 ui.duplicatePiece.addEventListener("click", duplicateSelectedPiece);
 ui.deletePiece.addEventListener("click", deleteSelectedPiece);
+ui.addNotch.addEventListener("click", addNotchToSelectedPoint);
+ui.deleteNotch.addEventListener("click", deleteNotchFromSelectedPoint);
 ui.deletePoint.addEventListener("click", deleteSelectedPoint);
 ui.pieceName.addEventListener("change", renameSelectedPiece);
 

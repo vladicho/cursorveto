@@ -17,6 +17,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Pecas vetoriais arrastaveis
 - Renomear, duplicar e apagar pecas para grade manual
 - Edicao, insercao e remocao de pontos
+- Piques de costura nos pontos da peca
 - Zoom e pan
 - Regua em centimetros
 - Medicao de distancia em centimetros no canvas
