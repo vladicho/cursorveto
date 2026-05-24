@@ -1890,6 +1890,11 @@ function setZoom(nextZoom, anchor = [canvas.width / 2, canvas.height / 2]) {
   draw();
 }
 
+function setZoomPercent(percent) {
+  setZoom(percent / 100);
+  updateImportStatus(`Zoom ajustado para ${percent}%.`);
+}
+
 function fitViewToPieces() {
   const allPoints = pieces.flatMap(transformedPoints);
   if (!allPoints.length) return;
@@ -2995,6 +3000,10 @@ document.addEventListener("keydown", (event) => {
     "=": () => ui.zoomIn.click(),
     "-": () => ui.zoomOut.click(),
     "0": () => ui.resetView.click(),
+    "1": () => setZoomPercent(100),
+    "2": () => setZoomPercent(250),
+    "5": () => setZoomPercent(500),
+    "9": () => setZoomPercent(1000),
   };
   const shortcutAction = !event.ctrlKey && !event.metaKey ? shortcutActions[key] : null;
   if (shortcutAction) {

@@ -45,6 +45,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Desfazer e refazer alteracoes do projeto
 - Zoom e pan
 - Zoom manual ate 1000%
+- Atalhos de zoom direto: 1 para 100%, 2 para 250%, 5 para 500% e 9 para 1000%
 - Regua em centimetros
 - Medicao de distancia em centimetros no canvas
 - Tipo de tecido: plano ou tubular
