@@ -82,6 +82,7 @@ let measurePoints = [];
 let undoStack = [];
 let redoStack = [];
 let historySuspended = false;
+let lockButtonState = null;
 
 const pieces = [
   {
@@ -634,6 +635,16 @@ function safePieceColor(value) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : "#475569";
 }
 
+function iconButtonMarkup(icon, label) {
+  return `<i data-lucide="${icon}"></i><span>${label}</span>`;
+}
+
+function refreshIcons() {
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
+
 function pieceMetaLabel(piece) {
   return [piece.model, piece.size].map((value) => String(value || "").trim()).filter(Boolean).join(" / ");
 }
@@ -704,7 +715,14 @@ function updateMetrics(collisions) {
   ui.pieceModel.value = piece ? piece.model || "" : "";
   ui.pieceSize.value = piece ? piece.size || "" : "";
   ui.pieceColor.value = piece ? safePieceColor(piece.color) : "#475569";
-  ui.toggleLockPiece.textContent = piece?.locked ? "Desbloquear peca" : "Bloquear peca";
+  const nextLockButtonState = piece?.locked ? "locked" : "unlocked";
+  if (lockButtonState !== nextLockButtonState) {
+    ui.toggleLockPiece.innerHTML = piece?.locked
+      ? iconButtonMarkup("unlock", "Desbloquear peca")
+      : iconButtonMarkup("lock", "Bloquear peca");
+    lockButtonState = nextLockButtonState;
+    refreshIcons();
+  }
   if (document.activeElement !== ui.seamAllowance) {
     ui.seamAllowance.value = piece ? Number(piece.seamAllowance || 0).toFixed(1) : 0;
   }
@@ -2306,5 +2324,7 @@ document.addEventListener("keydown", (event) => {
   if (isUndo) undoAction();
   if (isRedo) redoAction();
 });
+
+window.addEventListener("load", refreshIcons);
 
 draw();

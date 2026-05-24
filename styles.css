@@ -147,9 +147,31 @@ button {
   border: 1px solid var(--line);
   border-radius: 6px;
   height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   background: white;
   color: var(--ink);
   cursor: pointer;
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 1;
+  min-width: 0;
+}
+
+button svg,
+button [data-lucide] {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 button:hover {
