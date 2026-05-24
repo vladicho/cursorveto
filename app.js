@@ -459,27 +459,33 @@ function candidateCoordinates(placed, spacing, startX = spacing, fixedY = null) 
   };
 }
 
+function grainSafeRotations(piece) {
+  const grain = Number(piece.grainAngle || 0) % 360;
+  return [...new Set([grain, (grain + 180) % 360])];
+}
+
 function findBestPlacement(piece, placed, fabricWidth, spacing, options = {}) {
-  const rotation = Number(piece.grainAngle || 0) % 360;
-  const info = placementInfo(piece, rotation);
   const startX = options.startX ?? spacing;
   const fixedY = options.fixedY ?? null;
   const { xValues, yValues } = candidateCoordinates(placed, spacing, startX, fixedY);
   let best = null;
 
-  xValues.forEach((candidateX) => {
-    yValues.forEach((candidateY) => {
-      const x = candidateX - info.box.minX;
-      const y = candidateY - info.box.minY;
-      const testPiece = { ...piece, x, y, rotation };
-      const points = transformedPoints(testPiece);
-      const box = bounds(points);
-      if (!placementFits(points, box, placed, fabricWidth, spacing)) return;
-      const usedLength = Math.max(...placed.map((item) => item.box.maxX), 0, box.maxX);
-      const score = usedLength * 100000 + box.minX * 100 + box.minY;
-      if (!best || score < best.score) {
-        best = { x, y, rotation, points, box, score };
-      }
+  grainSafeRotations(piece).forEach((rotation) => {
+    const info = placementInfo(piece, rotation);
+    xValues.forEach((candidateX) => {
+      yValues.forEach((candidateY) => {
+        const x = candidateX - info.box.minX;
+        const y = candidateY - info.box.minY;
+        const testPiece = { ...piece, x, y, rotation };
+        const points = transformedPoints(testPiece);
+        const box = bounds(points);
+        if (!placementFits(points, box, placed, fabricWidth, spacing)) return;
+        const usedLength = Math.max(...placed.map((item) => item.box.maxX), 0, box.maxX);
+        const score = usedLength * 100000 + box.minX * 100 + box.minY;
+        if (!best || score < best.score) {
+          best = { x, y, rotation, points, box, score };
+        }
+      });
     });
   });
 
