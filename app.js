@@ -32,6 +32,7 @@ const ui = {
   imageInput: document.querySelector("#imageInput"),
   calibrationLength: document.querySelector("#calibrationLength"),
   digitizeStatus: document.querySelector("#digitizeStatus"),
+  pieceList: document.querySelector("#pieceList"),
   rotateLeft: document.querySelector("#rotateLeft"),
   rotateRight: document.querySelector("#rotateRight"),
   mirrorPiece: document.querySelector("#mirrorPiece"),
@@ -566,6 +567,34 @@ function drawPiece(piece, hasCollision) {
   drawVertices(piece);
 }
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => (
+    {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;",
+    }[char]
+  ));
+}
+
+function renderPieceList() {
+  ui.pieceList.innerHTML = pieces
+    .map((piece, index) => {
+      const pointCount = piece.points.length;
+      const notchCount = piece.notches?.length || 0;
+      const seam = Number(piece.seamAllowance || 0).toFixed(1);
+      const active = selectedId === piece.id ? " active" : "";
+      const color = /^#[0-9a-f]{6}$/i.test(piece.color) ? piece.color : "#475569";
+      return `<button class="piece-list-item${active}" data-piece-id="${piece.id}">
+        <span><i style="background:${color}"></i>${index + 1}. ${escapeHtml(piece.name)}</span>
+        <small>${pointCount} pts · ${notchCount} piques · ${seam} cm</small>
+      </button>`;
+    })
+    .join("");
+}
+
 function updateMetrics(collisions) {
   const allPoints = pieces.flatMap(transformedPoints);
   const box = bounds(allPoints);
@@ -586,6 +615,7 @@ function updateMetrics(collisions) {
   }
   ui.rotation.value = piece ? piece.rotation : 0;
   ui.grainAngle.value = String(piece?.grainAngle ?? 0);
+  renderPieceList();
 }
 
 function updateModeButtons() {
@@ -1946,6 +1976,15 @@ ui.addPiece.addEventListener("click", addPiece);
 ui.finishTrace.addEventListener("click", finishTrace);
 ui.undoAction.addEventListener("click", undoAction);
 ui.redoAction.addEventListener("click", redoAction);
+ui.pieceList.addEventListener("click", (event) => {
+  const item = event.target.closest("[data-piece-id]");
+  if (!item) return;
+  selectedId = item.dataset.pieceId;
+  selectedPointIndex = null;
+  mode = "points";
+  updateImportStatus(`Peca selecionada: ${selectedPiece()?.name || ""}.`);
+  draw();
+});
 ui.imageInput.addEventListener("change", (event) => importImage(event.target.files[0]));
 ui.vectorInput.addEventListener("change", (event) => importVectorFile(event.target.files[0]));
 ui.projectInput.addEventListener("change", (event) => openProject(event.target.files[0]));
