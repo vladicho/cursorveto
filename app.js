@@ -2548,6 +2548,96 @@ function finishTrace() {
   draw();
 }
 
+function morphMask(mask, width, height, modeName) {
+  const output = new Uint8Array(mask.length);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let active = modeName === "erode";
+      for (let dy = -1; dy <= 1; dy += 1) {
+        for (let dx = -1; dx <= 1; dx += 1) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const value = nx >= 0 && nx < width && ny >= 0 && ny < height ? mask[ny * width + nx] : 0;
+          if (modeName === "dilate" && value) active = true;
+          if (modeName === "erode" && !value) active = false;
+        }
+      }
+      output[y * width + x] = active ? 1 : 0;
+    }
+  }
+  return output;
+}
+
+function cleanupTraceMask(mask, width, height) {
+  return morphMask(morphMask(morphMask(mask, width, height, "dilate"), width, height, "erode"), width, height, "dilate");
+}
+
+function largestMaskComponent(mask, width, height) {
+  const visited = new Uint8Array(width * height);
+  let bestComponent = [];
+  const neighbors = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+    [1, 1],
+    [-1, -1],
+    [1, -1],
+    [-1, 1],
+  ];
+
+  for (let index = 0; index < mask.length; index += 1) {
+    if (!mask[index] || visited[index]) continue;
+    const stack = [index];
+    const component = [];
+    visited[index] = 1;
+    while (stack.length) {
+      const current = stack.pop();
+      component.push(current);
+      const x = current % width;
+      const y = Math.floor(current / width);
+      neighbors.forEach(([dx, dy]) => {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) return;
+        const next = ny * width + nx;
+        if (!mask[next] || visited[next]) return;
+        visited[next] = 1;
+        stack.push(next);
+      });
+    }
+    if (component.length > bestComponent.length) bestComponent = component;
+  }
+
+  return bestComponent;
+}
+
+function boundaryPixels(component, width, height) {
+  const componentSet = new Set(component);
+  return component.filter((index) => {
+    const x = index % width;
+    const y = Math.floor(index / width);
+    for (let dy = -1; dy <= 1; dy += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        if (!dx && !dy) continue;
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) return true;
+        if (!componentSet.has(ny * width + nx)) return true;
+      }
+    }
+    return false;
+  });
+}
+
+function simplifyContour(points, minDistance) {
+  return points.filter((point, index) => {
+    if (index === 0) return true;
+    const previous = points[index - 1];
+    return Math.hypot(point.x - previous.x, point.y - previous.y) >= minDistance;
+  });
+}
+
 function traceImageContour() {
   if (!backgroundImage || !background) {
     updateDigitizeStatus("Importe uma imagem antes de auto digitalizar.");
@@ -2589,37 +2679,8 @@ function traceImageContour() {
     }
   }
 
-  const visited = new Uint8Array(width * height);
-  let bestComponent = [];
-  const neighbors = [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
-  ];
-
-  for (let index = 0; index < mask.length; index += 1) {
-    if (!mask[index] || visited[index]) continue;
-    const stack = [index];
-    const component = [];
-    visited[index] = 1;
-    while (stack.length) {
-      const current = stack.pop();
-      component.push(current);
-      const x = current % width;
-      const y = Math.floor(current / width);
-      neighbors.forEach(([dx, dy]) => {
-        const nx = x + dx;
-        const ny = y + dy;
-        if (nx < 0 || nx >= width || ny < 0 || ny >= height) return;
-        const next = ny * width + nx;
-        if (!mask[next] || visited[next]) return;
-        visited[next] = 1;
-        stack.push(next);
-      });
-    }
-    if (component.length > bestComponent.length) bestComponent = component;
-  }
+  const cleanMask = cleanupTraceMask(mask, width, height);
+  const bestComponent = largestMaskComponent(cleanMask, width, height);
 
   if (bestComponent.length < 80) {
     updateDigitizeStatus("Nao encontrei um contorno forte. Tente uma imagem com mais contraste.");
@@ -2633,9 +2694,10 @@ function traceImageContour() {
   center[0] /= bestComponent.length;
   center[1] /= bestComponent.length;
 
-  const binCount = 96;
+  const border = boundaryPixels(bestComponent, width, height);
+  const binCount = 144;
   const bins = Array.from({ length: binCount }, () => null);
-  bestComponent.forEach((index) => {
+  border.forEach((index) => {
     const x = index % width;
     const y = Math.floor(index / width);
     const angle = (Math.atan2(y - center[1], x - center[0]) + Math.PI * 2) % (Math.PI * 2);
@@ -2644,8 +2706,18 @@ function traceImageContour() {
     if (!bins[bin] || distance > bins[bin].distance) bins[bin] = { x, y, distance };
   });
 
-  const tracedPoints = bins
+  const rawPoints = bins
     .filter(Boolean)
+    .map((point, index, points) => {
+      const previous = points[(index - 1 + points.length) % points.length];
+      const next = points[(index + 1) % points.length];
+      return {
+        x: (previous.x + point.x * 2 + next.x) / 4,
+        y: (previous.y + point.y * 2 + next.y) / 4,
+      };
+    });
+  const simplifiedPoints = simplifyContour(rawPoints, Math.max(3, Math.min(width, height) * 0.012));
+  const tracedPoints = simplifiedPoints
     .map(({ x, y }) => [
       background.x + (x / width) * background.widthCm,
       background.y + (y / height) * background.heightCm,
