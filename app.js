@@ -79,7 +79,7 @@ const ui = {
 
 const baseScale = 4;
 const origin = { x: 56, y: 66 };
-const fabricHeight = 158;
+const minimumMarkerLength = 220;
 const view = { zoom: 1, panX: 0, panY: 0 };
 
 let mode = "move";
@@ -250,6 +250,14 @@ function bounds(points) {
   };
 }
 
+function markerLength() {
+  const spacing = Math.max(0, Number(ui.spacing.value) || 0);
+  const allPoints = pieces.flatMap(transformedPoints);
+  if (!allPoints.length) return minimumMarkerLength;
+  const box = bounds(allPoints);
+  return Math.max(minimumMarkerLength, box.maxX + spacing * 2);
+}
+
 function polygonArea(points) {
   let area = 0;
   for (let index = 0; index < points.length; index += 1) {
@@ -392,13 +400,13 @@ function collisionInfo() {
   return { ids: collisions, pairs };
 }
 
-function drawRulers(width) {
+function drawRulers(length, width) {
   ctx.fillStyle = "#5d6966";
   ctx.font = "12px Arial";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  for (let cm = 0; cm <= width; cm += 10) {
+  for (let cm = 0; cm <= length; cm += 10) {
     const [x, y] = worldToScreen([cm, 0]);
     ctx.beginPath();
     ctx.moveTo(x, y - 8);
@@ -408,7 +416,7 @@ function drawRulers(width) {
   }
 
   ctx.textAlign = "right";
-  for (let cm = 0; cm <= fabricHeight; cm += 10) {
+  for (let cm = 0; cm <= width; cm += 10) {
     const [x, y] = worldToScreen([0, cm]);
     ctx.beginPath();
     ctx.moveTo(x - 8, y);
@@ -420,11 +428,12 @@ function drawRulers(width) {
 
 function drawFabric() {
   const width = Number(ui.fabricWidth.value);
+  const length = markerLength();
   const isTubular = ui.fabricType.value === "tubular";
   const gridStep = Math.max(0.5, Number(ui.gridStep.value) || 1);
   const [x, y] = worldToScreen([0, 0]);
-  const w = width * baseScale * view.zoom;
-  const h = fabricHeight * baseScale * view.zoom;
+  const w = length * baseScale * view.zoom;
+  const h = width * baseScale * view.zoom;
 
   ctx.fillStyle = "#f9faf7";
   ctx.strokeStyle = "#a8b4ad";
@@ -435,14 +444,14 @@ function drawFabric() {
   if (ui.showGrid.checked) {
     ctx.strokeStyle = "#d8e0db";
     ctx.lineWidth = 1;
-    for (let cm = gridStep; cm < width; cm += gridStep) {
+    for (let cm = gridStep; cm < length; cm += gridStep) {
       const [gx] = worldToScreen([cm, 0]);
       ctx.beginPath();
       ctx.moveTo(gx, y);
       ctx.lineTo(gx, y + h);
       ctx.stroke();
     }
-    for (let cm = gridStep; cm < fabricHeight; cm += gridStep) {
+    for (let cm = gridStep; cm < width; cm += gridStep) {
       const [, gy] = worldToScreen([0, cm]);
       ctx.beginPath();
       ctx.moveTo(x, gy);
@@ -451,12 +460,12 @@ function drawFabric() {
     }
   }
 
-  drawRulers(width);
+  drawRulers(length, width);
 
   ctx.fillStyle = "#5d6966";
   ctx.font = "13px Arial";
   ctx.textAlign = "right";
-  ctx.fillText(isTubular ? "Tecido tubular" : "Tecido plano", x + w, y - 14);
+  ctx.fillText(`${isTubular ? "Tecido tubular" : "Tecido plano"} - comprimento ${length.toFixed(1)} cm`, x + w, y - 14);
 
   if (isTubular) {
     ctx.save();
@@ -465,24 +474,16 @@ function drawFabric() {
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineTo(x, y + h);
-    ctx.moveTo(x + w, y);
+    ctx.lineTo(x + w, y);
+    ctx.moveTo(x, y + h);
     ctx.lineTo(x + w, y + h);
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = "#111827";
     ctx.font = "700 12px Arial";
     ctx.textAlign = "center";
-    ctx.save();
-    ctx.translate(x + 14, y + h / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText("DOBRA TUBULAR", 0, 0);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(x + w - 10, y + h / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText("DOBRA TUBULAR", 0, 0);
-    ctx.restore();
+    ctx.fillText("DOBRA TUBULAR", x + w / 2, y + 16);
+    ctx.fillText("DOBRA TUBULAR", x + w / 2, y + h - 10);
     ctx.restore();
   }
 }
@@ -1026,48 +1027,59 @@ function draw() {
 
 function autoNest() {
   recordHistory();
-  const spacing = Number(ui.spacing.value);
+  const spacing = Math.max(0, Number(ui.spacing.value) || 0);
   const fabricWidth = Number(ui.fabricWidth.value);
   const isTubular = ui.fabricType.value === "tubular";
   const ordered = [...pieces].sort((a, b) => polygonArea(transformedPoints(b)) - polygonArea(transformedPoints(a)));
+  const unlocked = ordered.filter((piece) => !piece.locked);
+  const foldPieces = isTubular ? unlocked.filter((piece) => piece.mirrored) : [];
+  const regularPieces = unlocked.filter((piece) => !(isTubular && piece.mirrored));
   let cursorX = spacing;
   let cursorY = spacing;
-  let rowHeight = 0;
-  let tubularLeftY = spacing;
-  let tubularRightY = spacing;
+  let columnWidth = 0;
+  let tubularTopX = spacing;
+  let tubularBottomX = spacing;
 
-  ordered.forEach((piece) => {
-    if (piece.locked) return;
+  foldPieces.forEach((piece) => {
+    piece.rotation = Number(piece.grainAngle || 0) % 360;
+    const box = bounds(transformedPoints({ ...piece, x: 0, y: 0 }));
+    const width = box.maxX - box.minX;
+    const height = box.maxY - box.minY;
+    const useBottomFold = tubularBottomX < tubularTopX;
+    piece.x = (useBottomFold ? tubularBottomX : tubularTopX) - box.minX;
+    piece.y = useBottomFold ? fabricWidth - height - spacing - box.minY : spacing - box.minY;
+    if (useBottomFold) tubularBottomX += width + spacing;
+    else tubularTopX += width + spacing;
+  });
+
+  if (foldPieces.length) {
+    cursorX = Math.max(tubularTopX, tubularBottomX);
+  }
+
+  regularPieces.forEach((piece) => {
     piece.rotation = Number(piece.grainAngle || 0) % 360;
     const box = bounds(transformedPoints({ ...piece, x: 0, y: 0 }));
     const width = box.maxX - box.minX;
     const height = box.maxY - box.minY;
 
-    if (isTubular && piece.mirrored) {
-      const useRightFold = tubularRightY < tubularLeftY;
-      piece.x = useRightFold ? fabricWidth - width - spacing - box.minX : spacing - box.minX;
-      piece.y = (useRightFold ? tubularRightY : tubularLeftY) - box.minY;
-      if (useRightFold) tubularRightY += height + spacing;
-      else tubularLeftY += height + spacing;
-      return;
-    }
-
-    if (cursorX + width + spacing > fabricWidth) {
-      cursorX = spacing;
-      cursorY += rowHeight + spacing;
-      rowHeight = 0;
+    if (cursorY + height + spacing > fabricWidth) {
+      cursorY = spacing;
+      cursorX += columnWidth + spacing;
+      columnWidth = 0;
     }
 
     piece.x = cursorX - box.minX;
     piece.y = cursorY - box.minY;
-    cursorX += width + spacing;
-    rowHeight = Math.max(rowHeight, height);
+    cursorY += height + spacing;
+    columnWidth = Math.max(columnWidth, width);
   });
+  updateImportStatus("Encaixe automatico aplicado. A largura ficou fixa e o comprimento do risco cresceu conforme as pecas.");
   draw();
 }
 
 function exportSvgMarkup() {
   const fabricWidth = Number(ui.fabricWidth.value);
+  const length = markerLength();
   const paths = pieces
     .map((piece) => {
       const points = transformedPoints(piece);
@@ -1087,8 +1099,8 @@ function exportSvgMarkup() {
       return `<g><path d="${d} Z" fill="${pieceColor}22" stroke="${pieceColor}" stroke-width="0.6"><title>${escapeHtml(pieceDisplayLabel(piece))}</title></path>${seam}${notches}</g>`;
     })
     .join("\n  ");
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${fabricWidth}cm" height="${fabricHeight}cm" viewBox="0 0 ${fabricWidth} ${fabricHeight}">
-  <rect x="0" y="0" width="${fabricWidth}" height="${fabricHeight}" fill="#f9faf7" stroke="#6b7280" stroke-width="0.5"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${length}cm" height="${fabricWidth}cm" viewBox="0 0 ${length} ${fabricWidth}">
+  <rect x="0" y="0" width="${length}" height="${fabricWidth}" fill="#f9faf7" stroke="#6b7280" stroke-width="0.5"/>
   ${paths}
 </svg>`;
 }
@@ -1217,11 +1229,12 @@ function exportPlt() {
 
 function exportMiniMarker() {
   const fabricWidth = Number(ui.fabricWidth.value);
+  const length = markerLength();
   const previewWidth = 1600;
   const margin = 48;
   const headerHeight = 86;
-  const previewScale = (previewWidth - margin * 2) / fabricWidth;
-  const previewHeight = Math.ceil(headerHeight + fabricHeight * previewScale + margin);
+  const previewScale = (previewWidth - margin * 2) / length;
+  const previewHeight = Math.ceil(headerHeight + fabricWidth * previewScale + margin);
   const output = document.createElement("canvas");
   output.width = previewWidth;
   output.height = previewHeight;
@@ -1235,12 +1248,16 @@ function exportMiniMarker() {
   out.fillText(ui.projectName.value || "MoldeLab Projeto", margin, 38);
   out.font = "18px Arial";
   out.fillStyle = "#4b5563";
-  out.fillText(`Mini risco - ${ui.fabricType.value === "tubular" ? "Tecido tubular" : "Tecido plano"} - largura ${fabricWidth} cm`, margin, 66);
+  out.fillText(
+    `Mini risco - ${ui.fabricType.value === "tubular" ? "Tecido tubular" : "Tecido plano"} - comprimento ${length.toFixed(1)} cm - largura ${fabricWidth} cm`,
+    margin,
+    66,
+  );
 
   const ox = margin;
   const oy = headerHeight;
-  const fw = fabricWidth * previewScale;
-  const fh = fabricHeight * previewScale;
+  const fw = length * previewScale;
+  const fh = fabricWidth * previewScale;
 
   out.fillStyle = "#f9faf7";
   out.strokeStyle = "#6b7280";
@@ -1250,13 +1267,13 @@ function exportMiniMarker() {
 
   out.strokeStyle = "#d8e0db";
   out.lineWidth = 1;
-  for (let cm = 10; cm < fabricWidth; cm += 10) {
+  for (let cm = 10; cm < length; cm += 10) {
     out.beginPath();
     out.moveTo(ox + cm * previewScale, oy);
     out.lineTo(ox + cm * previewScale, oy + fh);
     out.stroke();
   }
-  for (let cm = 10; cm < fabricHeight; cm += 10) {
+  for (let cm = 10; cm < fabricWidth; cm += 10) {
     out.beginPath();
     out.moveTo(ox, oy + cm * previewScale);
     out.lineTo(ox + fw, oy + cm * previewScale);
@@ -1346,7 +1363,7 @@ function projectSnapshot() {
       type: ui.fabricType.value,
       width: Number(ui.fabricWidth.value),
       spacing: Number(ui.spacing.value),
-      height: fabricHeight,
+      length: markerLength(),
     },
     editor: {
       snapToGrid: ui.snapToGrid.checked,
@@ -1719,8 +1736,8 @@ function alignSelectedPiece(modeName) {
     moveSelectedPieceBy(-box.minX, -box.minY, `Peca posicionada na origem: ${piece.name}.`);
   }
   if (modeName === "center-width") {
-    const center = (box.minX + box.maxX) / 2;
-    moveSelectedPieceBy(fabricWidth / 2 - center, 0, `Peca centralizada na largura: ${piece.name}.`);
+    const center = (box.minY + box.maxY) / 2;
+    moveSelectedPieceBy(0, fabricWidth / 2 - center, `Peca centralizada na largura: ${piece.name}.`);
   }
   if (modeName === "left") {
     moveSelectedPieceBy(-box.minX, 0, `Peca encostada na esquerda: ${piece.name}.`);

@@ -50,6 +50,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Seta de fio nas pecas com angulos 0, 45, 90, 135, 180 e 360 graus
 - Espelhamento e rotacao de pecas
 - Encaixe automatico simples
+- Encaixe usa largura fixa do tecido e aumenta o comprimento do risco conforme necessario
 - Deteccao de sobreposicao
 - Digitalizacao por imagem com calibracao de escala
 - Importacao SVG, DXF e PLT simples
