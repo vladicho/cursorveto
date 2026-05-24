@@ -630,6 +630,29 @@ function drawFabric() {
   }
 }
 
+function drawMarkerEndLine() {
+  const stats = markerStats();
+  if (stats.usedLength <= 0) return;
+  const fabricWidth = Number(ui.fabricWidth.value);
+  const [x, topY] = worldToScreen([stats.usedLength, 0]);
+  const [, bottomY] = worldToScreen([stats.usedLength, fabricWidth]);
+  ctx.save();
+  ctx.strokeStyle = "#111827";
+  ctx.fillStyle = "#111827";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 7]);
+  ctx.beginPath();
+  ctx.moveTo(x, topY);
+  ctx.lineTo(x, bottomY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = "700 12px Arial";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+  ctx.fillText(`FIM ${stats.usedLength.toFixed(1)} cm`, x - 8, topY + 8);
+  ctx.restore();
+}
+
 function drawVertices(piece) {
   if (mode !== "points" || selectedId !== piece.id) return;
   const pieceColor = safePieceColor(piece.color);
@@ -1193,6 +1216,7 @@ function draw() {
   drawBackgroundImage();
   const collisions = collisionInfo();
   pieces.forEach((piece) => drawPiece(piece, collisions.ids.has(piece.id)));
+  drawMarkerEndLine();
   drawDigitizeGuides();
   drawMeasureGuide();
   updateMetrics(collisions);
@@ -1246,6 +1270,7 @@ function autoNest() {
 function exportSvgMarkup() {
   const fabricWidth = Number(ui.fabricWidth.value);
   const length = markerLength();
+  const stats = markerStats();
   const paths = pieces
     .map((piece) => {
       const points = transformedPoints(piece);
@@ -1267,6 +1292,8 @@ function exportSvgMarkup() {
     .join("\n  ");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${length}cm" height="${fabricWidth}cm" viewBox="0 0 ${length} ${fabricWidth}">
   <rect x="0" y="0" width="${length}" height="${fabricWidth}" fill="#f9faf7" stroke="#6b7280" stroke-width="0.5"/>
+  <line x1="${stats.usedLength.toFixed(2)}" y1="0" x2="${stats.usedLength.toFixed(2)}" y2="${fabricWidth}" stroke="#111827" stroke-width="0.45" stroke-dasharray="1.8 1.2"/>
+  <text x="${Math.max(0, stats.usedLength - 1).toFixed(2)}" y="4" text-anchor="end" font-family="Arial" font-size="4" font-weight="700" fill="#111827">FIM ${stats.usedLength.toFixed(1)} cm</text>
   ${paths}
 </svg>`;
 }
