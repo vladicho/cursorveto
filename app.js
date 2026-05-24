@@ -64,6 +64,7 @@ const ui = {
   statusPiece: document.querySelector("#statusPiece"),
   statusFabric: document.querySelector("#statusFabric"),
   statusZoom: document.querySelector("#statusZoom"),
+  statusMessage: document.querySelector("#statusMessage"),
 };
 
 const baseScale = 4;
@@ -803,10 +804,12 @@ function updateModeButtons() {
 
 function updateDigitizeStatus(message) {
   ui.digitizeStatus.textContent = message;
+  ui.statusMessage.textContent = message;
 }
 
 function updateImportStatus(message) {
   ui.importStatus.textContent = message;
+  ui.statusMessage.textContent = message;
 }
 
 function drawBackgroundImage() {

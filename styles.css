@@ -550,6 +550,11 @@ button.primary:hover {
   font-weight: 700;
 }
 
+.status-message {
+  min-width: min(360px, 100%);
+  flex: 1 1 260px;
+}
+
 .canvas-wrap {
   overflow: auto;
   padding: 22px;
