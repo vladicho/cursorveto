@@ -28,6 +28,7 @@ const ui = {
   zoomOut: document.querySelector("#zoomOut"),
   zoomIn: document.querySelector("#zoomIn"),
   resetView: document.querySelector("#resetView"),
+  fitView: document.querySelector("#fitView"),
   snapToGrid: document.querySelector("#snapToGrid"),
   gridStep: document.querySelector("#gridStep"),
   addPiece: document.querySelector("#addPiece"),
@@ -1494,6 +1495,22 @@ function setZoom(nextZoom, anchor = [canvas.width / 2, canvas.height / 2]) {
   draw();
 }
 
+function fitViewToPieces() {
+  const allPoints = pieces.flatMap(transformedPoints);
+  if (!allPoints.length) return;
+  const box = bounds(allPoints);
+  const width = Math.max(1, box.maxX - box.minX);
+  const height = Math.max(1, box.maxY - box.minY);
+  const padding = 70;
+  const zoomX = (canvas.width - padding * 2) / (width * baseScale);
+  const zoomY = (canvas.height - padding * 2) / (height * baseScale);
+  view.zoom = Math.min(2.5, Math.max(0.25, Math.min(zoomX, zoomY)));
+  view.panX = canvas.width / 2 - origin.x - ((box.minX + width / 2) * baseScale * view.zoom);
+  view.panY = canvas.height / 2 - origin.y - ((box.minY + height / 2) * baseScale * view.zoom);
+  updateImportStatus("Pecas ajustadas a tela.");
+  draw();
+}
+
 function addPiece() {
   recordHistory();
   const id = `custom-${newPieceCount}`;
@@ -2330,6 +2347,7 @@ ui.resetView.addEventListener("click", () => {
   view.panY = 0;
   draw();
 });
+ui.fitView.addEventListener("click", fitViewToPieces);
 
 ui.rotateLeft.addEventListener("click", () => {
   const piece = selectedPiece();
@@ -2481,6 +2499,7 @@ ui.canvasContextMenu.addEventListener("click", (event) => {
     "zoom-in": () => ui.zoomIn.click(),
     "zoom-out": () => ui.zoomOut.click(),
     "reset-view": () => ui.resetView.click(),
+    "fit-view": () => ui.fitView.click(),
   };
   actions[button.dataset.canvasAction]?.();
   closeCanvasContextMenu();
@@ -2513,6 +2532,7 @@ document.addEventListener("keydown", (event) => {
     t: () => ui.modeTrace.click(),
     h: () => ui.modePan.click(),
     r: () => ui.modeMeasure.click(),
+    f: () => ui.fitView.click(),
     n: () => ui.addPiece.click(),
     "+": () => ui.zoomIn.click(),
     "=": () => ui.zoomIn.click(),
