@@ -210,6 +210,7 @@ button span {
 .menu-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -262,13 +263,37 @@ button span {
   z-index: 15;
   top: calc(100% + 6px);
   left: 0;
-  display: flex;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  min-width: 190px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   background: white;
   box-shadow: 0 14px 35px rgba(17, 24, 39, 0.16);
+}
+
+.menu-list .icon-action {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 0 10px;
+}
+
+.menu-list .icon-action > span {
+  position: static;
+  max-width: none;
+  width: auto;
+  transform: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+  opacity: 1;
+  pointer-events: auto;
+  font-weight: 600;
 }
 
 button:hover {

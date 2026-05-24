@@ -14,7 +14,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 
 - Editor 2D em canvas
 - Botoes compactos com icones e texto no hover/foco
-- Menu Arquivo desplegavel para salvar e exportar
+- Menus desplegaveis para arquivo, modos, visualizacao, edicao e comandos da peca
 - Criacao de moldes do zero por pontos
 - Pecas vetoriais arrastaveis
 - Lista de pecas para selecao rapida

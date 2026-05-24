@@ -64,26 +64,36 @@
 
         <section class="panel">
           <h2>Ferramentas</h2>
-          <div class="mode-row">
-            <button id="modeMove" class="active" title="Mover pecas"><i data-lucide="move"></i><span>Mover</span></button>
-            <button id="modePoints" title="Editar pontos"><i data-lucide="mouse-pointer-2"></i><span>Pontos</span></button>
-            <button id="modeDraw" title="Criar molde do zero"><i data-lucide="pen-tool"></i><span>Desenhar</span></button>
-          </div>
-          <div class="mode-row">
-            <button id="modeCalibrate" title="Calibrar imagem"><i data-lucide="scan-line"></i><span>Calibrar</span></button>
-            <button id="modeTrace" title="Contornar molde"><i data-lucide="scan"></i><span>Digitalizar</span></button>
-            <button id="modePan" title="Mover tela"><i data-lucide="hand"></i><span>Pan</span></button>
-          </div>
-          <button id="modeMeasure" title="Medir distancia em centimetros"><i data-lucide="ruler"></i><span>Medir</span></button>
-          <button id="finishTrace" title="Criar peca do contorno"><i data-lucide="check"></i><span>Fechar contorno</span></button>
-          <div class="tool-row">
-            <button id="undoAction" title="Desfazer"><i data-lucide="undo-2"></i><span>Desfazer</span></button>
-            <button id="redoAction" title="Refazer"><i data-lucide="redo-2"></i><span>Refazer</span></button>
-          </div>
-          <div class="tool-row">
-            <button id="zoomOut" title="Diminuir zoom"><i data-lucide="zoom-out"></i><span>Diminuir zoom</span></button>
-            <button id="resetView" title="Centralizar"><i data-lucide="maximize"></i><span>Centralizar 100%</span></button>
-            <button id="zoomIn" title="Aumentar zoom"><i data-lucide="zoom-in"></i><span>Aumentar zoom</span></button>
+          <div class="menu-bar">
+            <details class="menu-dropdown">
+              <summary><i data-lucide="mouse-pointer-2"></i><span>Modo</span></summary>
+              <div class="menu-list">
+                <button id="modeMove" class="active" title="Mover pecas"><i data-lucide="move"></i><span>Mover</span></button>
+                <button id="modePoints" title="Editar pontos"><i data-lucide="mouse-pointer-2"></i><span>Pontos</span></button>
+                <button id="modeDraw" title="Criar molde do zero"><i data-lucide="pen-tool"></i><span>Desenhar</span></button>
+                <button id="modeCalibrate" title="Calibrar imagem"><i data-lucide="scan-line"></i><span>Calibrar</span></button>
+                <button id="modeTrace" title="Contornar molde"><i data-lucide="scan"></i><span>Digitalizar</span></button>
+                <button id="modePan" title="Mover tela"><i data-lucide="hand"></i><span>Pan</span></button>
+                <button id="modeMeasure" title="Medir distancia em centimetros"><i data-lucide="ruler"></i><span>Medir</span></button>
+              </div>
+            </details>
+            <details class="menu-dropdown">
+              <summary><i data-lucide="eye"></i><span>Visualizar</span></summary>
+              <div class="menu-list">
+                <button id="zoomOut" title="Diminuir zoom"><i data-lucide="zoom-out"></i><span>Diminuir zoom</span></button>
+                <button id="resetView" title="Centralizar"><i data-lucide="maximize"></i><span>Centralizar 100%</span></button>
+                <button id="zoomIn" title="Aumentar zoom"><i data-lucide="zoom-in"></i><span>Aumentar zoom</span></button>
+              </div>
+            </details>
+            <details class="menu-dropdown">
+              <summary><i data-lucide="edit-3"></i><span>Editar</span></summary>
+              <div class="menu-list">
+                <button id="undoAction" title="Desfazer"><i data-lucide="undo-2"></i><span>Desfazer</span></button>
+                <button id="redoAction" title="Refazer"><i data-lucide="redo-2"></i><span>Refazer</span></button>
+                <button id="finishTrace" title="Criar peca do contorno"><i data-lucide="check"></i><span>Fechar contorno</span></button>
+                <button id="addPiece"><i data-lucide="plus"></i><span>Nova peca</span></button>
+              </div>
+            </details>
           </div>
           <label class="inline-check">
             <input id="snapToGrid" type="checkbox" />
@@ -93,7 +103,6 @@
             Passo da grade (cm)
             <input id="gridStep" type="number" min="0.1" max="10" step="0.1" value="1" />
           </label>
-          <button id="addPiece"><i data-lucide="plus"></i><span>Nova peca</span></button>
         </section>
 
         <section class="panel">
@@ -138,29 +147,31 @@
             Margem de costura (cm)
             <input id="seamAllowance" type="number" min="0" max="8" step="0.1" value="0" />
           </label>
-          <div class="tool-row">
-            <button id="rotateLeft" title="Girar 15 graus para esquerda"><i data-lucide="rotate-ccw"></i><span>Girar -15 graus</span></button>
-            <button id="rotateRight" title="Girar 15 graus para direita"><i data-lucide="rotate-cw"></i><span>Girar +15 graus</span></button>
-            <button id="mirrorPiece" title="Espelhar peca"><i data-lucide="flip-horizontal"></i><span>Espelhar peca</span></button>
+          <div class="menu-bar">
+            <details class="menu-dropdown">
+              <summary><i data-lucide="move-3d"></i><span>Transformar</span></summary>
+              <div class="menu-list">
+                <button id="rotateLeft" title="Girar 15 graus para esquerda"><i data-lucide="rotate-ccw"></i><span>Girar -15 graus</span></button>
+                <button id="rotateRight" title="Girar 15 graus para direita"><i data-lucide="rotate-cw"></i><span>Girar +15 graus</span></button>
+                <button id="mirrorPiece" title="Espelhar peca"><i data-lucide="flip-horizontal"></i><span>Espelhar peca</span></button>
+                <button id="fitPieceOrigin"><i data-lucide="corner-up-left"></i><span>Na origem</span></button>
+                <button id="centerPieceWidth"><i data-lucide="align-horizontal-justify-center"></i><span>Centralizar largura</span></button>
+                <button id="alignPieceLeft"><i data-lucide="align-horizontal-justify-start"></i><span>Encostar esquerda</span></button>
+                <button id="alignPieceTop"><i data-lucide="align-vertical-justify-start"></i><span>Encostar topo</span></button>
+              </div>
+            </details>
+            <details class="menu-dropdown">
+              <summary><i data-lucide="scissors"></i><span>Peca</span></summary>
+              <div class="menu-list">
+                <button id="duplicatePiece"><i data-lucide="copy"></i><span>Duplicar peca</span></button>
+                <button id="deletePiece"><i data-lucide="trash-2"></i><span>Apagar peca</span></button>
+                <button id="toggleLockPiece"><i data-lucide="lock"></i><span>Bloquear peca</span></button>
+                <button id="addNotch"><i data-lucide="circle-plus"></i><span>Adicionar pique</span></button>
+                <button id="deleteNotch"><i data-lucide="circle-minus"></i><span>Apagar pique</span></button>
+                <button id="deletePoint"><i data-lucide="circle-x"></i><span>Apagar ponto</span></button>
+              </div>
+            </details>
           </div>
-          <div class="tool-row two-actions">
-            <button id="fitPieceOrigin"><i data-lucide="corner-up-left"></i><span>Na origem</span></button>
-            <button id="centerPieceWidth"><i data-lucide="align-horizontal-justify-center"></i><span>Centralizar largura</span></button>
-          </div>
-          <div class="tool-row two-actions">
-            <button id="alignPieceLeft"><i data-lucide="align-horizontal-justify-start"></i><span>Encostar esquerda</span></button>
-            <button id="alignPieceTop"><i data-lucide="align-vertical-justify-start"></i><span>Encostar topo</span></button>
-          </div>
-          <div class="tool-row two-actions">
-            <button id="duplicatePiece"><i data-lucide="copy"></i><span>Duplicar peca</span></button>
-            <button id="deletePiece"><i data-lucide="trash-2"></i><span>Apagar peca</span></button>
-          </div>
-          <button id="toggleLockPiece"><i data-lucide="lock"></i><span>Bloquear peca</span></button>
-          <div class="tool-row two-actions">
-            <button id="addNotch"><i data-lucide="circle-plus"></i><span>Adicionar pique</span></button>
-            <button id="deleteNotch"><i data-lucide="circle-minus"></i><span>Apagar pique</span></button>
-          </div>
-          <button id="deletePoint"><i data-lucide="circle-x"></i><span>Apagar ponto</span></button>
           <label>
             Rotacao
             <input id="rotation" type="range" min="0" max="345" step="15" value="0" />
