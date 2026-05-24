@@ -1,4 +1,5 @@
 @echo off
+setlocal
 cd /d "%~dp0"
 
 set "NODE_EXE="
@@ -11,8 +12,9 @@ if %errorlevel%==0 (
 )
 
 if not defined NODE_EXE (
-  set "CODEX_NODE=%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
-  if exist "%CODEX_NODE%" set "NODE_EXE=%CODEX_NODE%"
+  if exist "%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe" (
+    set "NODE_EXE=%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
+  )
 )
 
 if not defined NODE_EXE (
