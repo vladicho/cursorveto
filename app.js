@@ -2638,6 +2638,10 @@ function simplifyContour(points, minDistance) {
   });
 }
 
+function colorDistance(a, b) {
+  return Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
+}
+
 function traceImageContour() {
   if (!backgroundImage || !background) {
     updateDigitizeStatus("Importe uma imagem antes de auto digitalizar.");
@@ -2655,27 +2659,41 @@ function traceImageContour() {
   traceCtx.drawImage(backgroundImage, 0, 0, width, height);
   const { data } = traceCtx.getImageData(0, 0, width, height);
   const lum = (index) => data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
+  const rgb = (index) => ({ r: data[index], g: data[index + 1], b: data[index + 2] });
   const borderSamples = [];
 
   for (let x = 0; x < width; x += 8) {
-    borderSamples.push(lum(x * 4));
-    borderSamples.push(lum(((height - 1) * width + x) * 4));
+    borderSamples.push(rgb(x * 4));
+    borderSamples.push(rgb(((height - 1) * width + x) * 4));
   }
   for (let y = 0; y < height; y += 8) {
-    borderSamples.push(lum(y * width * 4));
-    borderSamples.push(lum((y * width + width - 1) * 4));
+    borderSamples.push(rgb(y * width * 4));
+    borderSamples.push(rgb((y * width + width - 1) * 4));
   }
 
-  const backgroundLum = borderSamples.reduce((total, value) => total + value, 0) / Math.max(1, borderSamples.length);
-  const threshold = Math.max(22, backgroundLum * 0.1);
+  const backgroundColor = borderSamples.reduce(
+    (acc, sample) => ({ r: acc.r + sample.r, g: acc.g + sample.g, b: acc.b + sample.b }),
+    { r: 0, g: 0, b: 0 },
+  );
+  backgroundColor.r /= Math.max(1, borderSamples.length);
+  backgroundColor.g /= Math.max(1, borderSamples.length);
+  backgroundColor.b /= Math.max(1, borderSamples.length);
+  const backgroundLum = backgroundColor.r * 0.299 + backgroundColor.g * 0.587 + backgroundColor.b * 0.114;
+  const borderDistances = borderSamples.map((sample) => colorDistance(sample, backgroundColor));
+  const averageBorderDistance = borderDistances.reduce((total, value) => total + value, 0) / Math.max(1, borderDistances.length);
+  const colorThreshold = Math.max(42, averageBorderDistance * 2.8);
+  const darkLineThreshold = Math.max(30, backgroundLum * 0.14);
   const mask = new Uint8Array(width * height);
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const offset = (y * width + x) * 4;
       const alpha = data[offset + 3];
+      const pixelColor = rgb(offset);
       const pixelLum = lum(offset);
-      if (alpha > 32 && pixelLum < backgroundLum - threshold) mask[y * width + x] = 1;
+      const awayFromBackground = colorDistance(pixelColor, backgroundColor) > colorThreshold;
+      const darkLine = pixelLum < backgroundLum - darkLineThreshold;
+      if (alpha > 32 && (awayFromBackground || darkLine)) mask[y * width + x] = 1;
     }
   }
 
