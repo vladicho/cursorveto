@@ -60,6 +60,10 @@ const ui = {
   usedLength: document.querySelector("#usedLength"),
   efficiency: document.querySelector("#efficiency"),
   collisions: document.querySelector("#collisions"),
+  statusMode: document.querySelector("#statusMode"),
+  statusPiece: document.querySelector("#statusPiece"),
+  statusFabric: document.querySelector("#statusFabric"),
+  statusZoom: document.querySelector("#statusZoom"),
 };
 
 const baseScale = 4;
@@ -689,6 +693,19 @@ function pieceDisplayLabel(piece) {
   return meta ? `${piece.name} - ${meta}` : piece.name;
 }
 
+function modeLabel() {
+  const labels = {
+    move: "Mover",
+    points: "Pontos",
+    draw: "Desenhar",
+    pan: "Pan",
+    calibrate: "Calibrar",
+    trace: "Digitalizar",
+    measure: "Medir",
+  };
+  return labels[mode] || mode;
+}
+
 function renderPieceList() {
   ui.pieceList.innerHTML = pieces
     .map((piece, index) => {
@@ -745,6 +762,10 @@ function updateMetrics(collisions) {
   ui.collisions.textContent = String(collisions.pairs);
 
   const piece = selectedPiece();
+  ui.statusMode.textContent = modeLabel();
+  ui.statusPiece.textContent = piece ? pieceDisplayLabel(piece) : "Nenhuma";
+  ui.statusFabric.textContent = `${ui.fabricType.value === "tubular" ? "Tubular" : "Plano"} ${Number(ui.fabricWidth.value).toFixed(0)} cm`;
+  ui.statusZoom.textContent = `${Math.round(view.zoom * 100)}%`;
   ui.selectionName.textContent = piece ? pieceDisplayLabel(piece) : "Nenhuma peca";
   ui.pieceName.value = piece ? piece.name : "";
   ui.pieceModel.value = piece ? piece.model || "" : "";

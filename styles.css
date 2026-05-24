@@ -476,7 +476,7 @@ button.primary:hover {
 .workspace {
   min-width: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .topbar {
@@ -530,6 +530,24 @@ button.primary:hover {
 
 .legend .warn {
   background: var(--danger);
+}
+
+.statusbar {
+  min-height: 34px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 7px 18px;
+  background: #eef3ef;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.statusbar b {
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .canvas-wrap {
