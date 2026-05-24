@@ -34,6 +34,7 @@ const ui = {
   rotateRight: document.querySelector("#rotateRight"),
   mirrorPiece: document.querySelector("#mirrorPiece"),
   pieceName: document.querySelector("#pieceName"),
+  seamAllowance: document.querySelector("#seamAllowance"),
   duplicatePiece: document.querySelector("#duplicatePiece"),
   deletePiece: document.querySelector("#deletePiece"),
   addNotch: document.querySelector("#addNotch"),
@@ -454,6 +455,41 @@ function notchSegments(piece, points) {
     });
 }
 
+function seamAllowancePoints(piece, points) {
+  const amount = Number(piece.seamAllowance) || 0;
+  if (amount <= 0 || points.length < 3) return [];
+  const [cx, cy] = centroid(points);
+  return points.map(([x, y]) => {
+    const dx = x - cx;
+    const dy = y - cy;
+    const length = Math.hypot(dx, dy) || 1;
+    return [x + (dx / length) * amount, y + (dy / length) * amount];
+  });
+}
+
+function drawPolyline(points, closePath = true) {
+  if (!points.length) return;
+  const canvasPoints = points.map(worldToScreen);
+  ctx.beginPath();
+  canvasPoints.forEach(([x, y], index) => {
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  if (closePath) ctx.closePath();
+}
+
+function drawSeamAllowance(piece, points) {
+  const seamPoints = seamAllowancePoints(piece, points);
+  if (!seamPoints.length) return;
+  ctx.save();
+  ctx.setLineDash([8, 5]);
+  ctx.strokeStyle = "#7c3aed";
+  ctx.lineWidth = selectedId === piece.id ? 2.5 : 1.5;
+  drawPolyline(seamPoints, true);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawNotches(piece, points) {
   const segments = notchSegments(piece, points);
   if (!segments.length) return;
@@ -506,13 +542,7 @@ function drawGrainline(piece, points) {
 
 function drawPiece(piece, hasCollision) {
   const points = transformedPoints(piece);
-  const canvasPoints = points.map(worldToScreen);
-  ctx.beginPath();
-  canvasPoints.forEach(([x, y], index) => {
-    if (index === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.closePath();
+  drawPolyline(points, true);
   ctx.fillStyle = hasCollision ? "rgba(194, 65, 12, 0.18)" : `${piece.color}26`;
   ctx.strokeStyle = hasCollision ? "#c2410c" : piece.color;
   ctx.lineWidth = selectedId === piece.id ? 4 : 2;
@@ -525,6 +555,7 @@ function drawPiece(piece, hasCollision) {
   ctx.font = "700 13px Arial";
   ctx.textAlign = "left";
   ctx.fillText(piece.name, label[0], label[1]);
+  drawSeamAllowance(piece, points);
   drawGrainline(piece, points);
   drawNotches(piece, points);
   drawVertices(piece);
@@ -545,6 +576,9 @@ function updateMetrics(collisions) {
   const piece = selectedPiece();
   ui.selectionName.textContent = piece ? piece.name : "Nenhuma peca";
   ui.pieceName.value = piece ? piece.name : "";
+  if (document.activeElement !== ui.seamAllowance) {
+    ui.seamAllowance.value = piece ? Number(piece.seamAllowance || 0).toFixed(1) : 0;
+  }
   ui.rotation.value = piece ? piece.rotation : 0;
   ui.grainAngle.value = String(piece?.grainAngle ?? 0);
 }
@@ -732,13 +766,18 @@ function exportSvgMarkup() {
     .map((piece) => {
       const points = transformedPoints(piece);
       const d = points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
+      const seamPoints = seamAllowancePoints(piece, points);
+      const seam =
+        seamPoints.length > 0
+          ? `<path d="${seamPoints.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ")} Z" fill="none" stroke="#7c3aed" stroke-width="0.35" stroke-dasharray="1.4 1.1"/>`
+          : "";
       const notches = notchSegments(piece, points)
         .map(
           ({ start, end }) =>
             `<line x1="${start[0].toFixed(2)}" y1="${start[1].toFixed(2)}" x2="${end[0].toFixed(2)}" y2="${end[1].toFixed(2)}" stroke="#be123c" stroke-width="0.45"/>`,
         )
         .join("");
-      return `<g><path d="${d} Z" fill="${piece.color}22" stroke="${piece.color}" stroke-width="0.6"><title>${piece.name}</title></path>${notches}</g>`;
+      return `<g><path d="${d} Z" fill="${piece.color}22" stroke="${piece.color}" stroke-width="0.6"><title>${piece.name}</title></path>${seam}${notches}</g>`;
     })
     .join("\n  ");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${fabricWidth}cm" height="${fabricHeight}cm" viewBox="0 0 ${fabricWidth} ${fabricHeight}">
@@ -784,6 +823,8 @@ function exportDxfMarkup() {
     const points = transformedPoints(piece);
     if (points.length < 3) return;
     lines.push(...dxfPolyline(points, "MOLDE_CONTORNO", true));
+    const seamPoints = seamAllowancePoints(piece, points);
+    if (seamPoints.length) lines.push(...dxfPolyline(seamPoints, "MOLDE_MARGEM_COSTURA", true));
     lines.push(...dxfPolyline(pieceGrainlinePoints(piece, points), "MOLDE_FIO", false));
     notchSegments(piece, points).forEach(({ start, end }) => {
       lines.push(...dxfPolyline([start, end], "MOLDE_PIQUE", false));
@@ -828,6 +869,14 @@ function exportPltMarkup() {
     commands.push(`PU${startX},${startY};`);
     commands.push(`PD${points.map((point) => hpglPoint(point).join(",")).join(",")},${startX},${startY};`);
     commands.push("PU;");
+
+    const seamPoints = seamAllowancePoints(piece, points);
+    if (seamPoints.length) {
+      const [seamStartX, seamStartY] = hpglPoint(seamPoints[0]);
+      commands.push(`PU${seamStartX},${seamStartY};`);
+      commands.push(`PD${seamPoints.map((point) => hpglPoint(point).join(",")).join(",")},${seamStartX},${seamStartY};`);
+      commands.push("PU;");
+    }
 
     const grainline = pieceGrainlinePoints(piece, points).map(hpglPoint);
     commands.push(`PU${grainline[0][0]},${grainline[0][1]};`);
@@ -923,6 +972,24 @@ function exportMiniMarker() {
     out.fill();
     out.stroke();
 
+    const seamPoints = seamAllowancePoints(piece, points);
+    if (seamPoints.length) {
+      out.save();
+      out.setLineDash([10, 7]);
+      out.strokeStyle = "#7c3aed";
+      out.lineWidth = 2;
+      out.beginPath();
+      seamPoints.forEach(([x, y], index) => {
+        const px = ox + x * previewScale;
+        const py = oy + y * previewScale;
+        if (index === 0) out.moveTo(px, py);
+        else out.lineTo(px, py);
+      });
+      out.closePath();
+      out.stroke();
+      out.restore();
+    }
+
     out.strokeStyle = "#be123c";
     out.lineWidth = 2;
     notchSegments(piece, points).forEach(({ start, end }) => {
@@ -985,6 +1052,7 @@ function projectSnapshot() {
       y: piece.y,
       rotation: piece.rotation,
       grainAngle: piece.grainAngle || 0,
+      seamAllowance: Number(piece.seamAllowance) || 0,
       mirrored: Boolean(piece.mirrored),
       color: piece.color,
       points: piece.points.map(([x, y]) => [x, y]),
@@ -1028,6 +1096,7 @@ function openProject(file) {
           y: Number(piece.y) || 0,
           rotation: Number(piece.rotation) || 0,
           grainAngle: Number(piece.grainAngle) || 0,
+          seamAllowance: Number(piece.seamAllowance) || 0,
           mirrored: Boolean(piece.mirrored),
           color: piece.color || "#475569",
           points: Array.isArray(piece.points) ? piece.points.map(([x, y]) => [Number(x) || 0, Number(y) || 0]) : [],
@@ -1074,6 +1143,7 @@ function addPiece() {
     y: 18 + newPieceCount * 6,
     rotation: 0,
     grainAngle: 0,
+    seamAllowance: 0,
     mirrored: false,
     color: "#0891b2",
     notches: [],
@@ -1117,6 +1187,13 @@ function renameSelectedPiece() {
   const nextName = ui.pieceName.value.trim();
   if (!nextName) return;
   piece.name = nextName;
+  draw();
+}
+
+function updateSelectedSeamAllowance() {
+  const piece = selectedPiece();
+  if (!piece) return;
+  piece.seamAllowance = Math.max(0, Number(ui.seamAllowance.value) || 0);
   draw();
 }
 
@@ -1259,6 +1336,7 @@ function createImportedPiece(points, name) {
     y: normalized.y,
     rotation: 0,
     grainAngle: 0,
+    seamAllowance: 0,
     mirrored: false,
     color: "#475569",
     notches: [],
@@ -1494,6 +1572,7 @@ function finishTrace() {
     y: box.minY,
     rotation: 0,
     grainAngle: 0,
+    seamAllowance: 0,
     mirrored: false,
     color: "#0891b2",
     notches: [],
@@ -1720,14 +1799,18 @@ ui.addNotch.addEventListener("click", addNotchToSelectedPoint);
 ui.deleteNotch.addEventListener("click", deleteNotchFromSelectedPoint);
 ui.deletePoint.addEventListener("click", deleteSelectedPoint);
 ui.pieceName.addEventListener("change", renameSelectedPiece);
+ui.seamAllowance.addEventListener("input", updateSelectedSeamAllowance);
 
 ui.rotation.addEventListener("input", () => {
-  selectedPiece().rotation = Number(ui.rotation.value);
+  const piece = selectedPiece();
+  if (!piece) return;
+  piece.rotation = Number(ui.rotation.value);
   draw();
 });
 
 ui.grainAngle.addEventListener("change", () => {
   const piece = selectedPiece();
+  if (!piece) return;
   piece.grainAngle = Number(ui.grainAngle.value);
   piece.rotation = piece.grainAngle % 360;
   draw();
