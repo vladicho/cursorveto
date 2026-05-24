@@ -8,141 +8,66 @@
   </head>
   <body>
     <main class="app-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <span class="brand-mark">M</span>
-          <div>
-            <h1>MoldeLab</h1>
-            <p>Editor vetorial de encaixe</p>
-          </div>
-        </div>
-
-        <section class="panel">
-          <h2>Projeto</h2>
-          <label>
-            Nome do projeto
-            <input id="projectName" type="text" value="MoldeLab Projeto" />
-          </label>
-          <label>
-            Abrir projeto
-            <input id="projectInput" type="file" accept=".moldelab.json,application/json" />
-          </label>
-          <label>
-            Importar vetor
-            <input id="vectorInput" type="file" accept=".svg,.dxf,.ads,.plt" />
-          </label>
-          <label>
-            Tipo de tecido
-            <select id="fabricType">
-              <option value="flat">Plano</option>
-              <option value="tubular">Tubular</option>
-            </select>
-          </label>
-          <label>
-            Largura do tecido
-            <input id="fabricWidth" type="number" min="80" max="240" step="5" value="150" />
-          </label>
-          <label>
-            Margem entre pecas
-            <input id="spacing" type="number" min="0" max="10" step="0.5" value="2" />
-          </label>
-          <label class="inline-check">
-            <input id="snapToGrid" type="checkbox" />
-            Ajustar a grade
-          </label>
-          <label>
-            Passo da grade (cm)
-            <input id="gridStep" type="number" min="0.1" max="10" step="0.1" value="1" />
-          </label>
-          <div id="importStatus" class="status-line">SVG, DXF e PLT simples importaveis. ADS precisa de amostras.</div>
-        </section>
-
-        <section class="panel">
-          <h2>Digitalizacao</h2>
-          <label>
-            Foto ou scan do molde
-            <input id="imageInput" type="file" accept="image/*" />
-          </label>
-          <label>
-            Medida de referencia (cm)
-            <input id="calibrationLength" type="number" min="1" max="200" step="0.5" value="10" />
-          </label>
-          <div id="digitizeStatus" class="status-line">Importe uma imagem para comecar.</div>
-        </section>
-
-        <section class="panel">
-          <h2>Pecas do projeto</h2>
-          <div id="pieceList" class="piece-list"></div>
-        </section>
-
-        <section class="panel">
-          <h2>Peca selecionada</h2>
-          <div id="selectionName" class="selected-name">Nenhuma peca</div>
-          <div id="pieceStats" class="piece-stats"></div>
-          <label>
-            Nome da peca
-            <input id="pieceName" type="text" value="" />
-          </label>
-          <label>
-            Modelo
-            <input id="pieceModel" type="text" value="" placeholder="Ex: Calca jeans" />
-          </label>
-          <label>
-            Tamanho
-            <input id="pieceSize" type="text" value="" placeholder="Ex: 40, M, GG" />
-          </label>
-          <label>
-            Cor da peca
-            <input id="pieceColor" type="color" value="#0891b2" />
-          </label>
-          <label>
-            Margem de costura (cm)
-            <input id="seamAllowance" type="number" min="0" max="8" step="0.1" value="0" />
-          </label>
-          <label>
-            Rotacao
-            <input id="rotation" type="range" min="0" max="345" step="15" value="0" />
-          </label>
-          <label>
-            Sentido do fio
-            <select id="grainAngle">
-              <option value="0">0 graus</option>
-              <option value="45">45 graus</option>
-              <option value="90">90 graus</option>
-              <option value="135">135 graus</option>
-              <option value="180">180 graus</option>
-              <option value="360">360 graus</option>
-            </select>
-          </label>
-        </section>
-
-        <section class="metrics">
-          <div>
-            <span id="usedLength">0 cm</span>
-            <p>Comprimento usado</p>
-          </div>
-          <div>
-            <span id="efficiency">0%</span>
-            <p>Aproveitamento</p>
-          </div>
-          <div>
-            <span id="collisions">0</span>
-            <p>Sobreposicoes</p>
-          </div>
-        </section>
-      </aside>
-
       <section class="workspace">
         <header class="topbar">
+          <div class="brand compact-brand">
+            <span class="brand-mark">M</span>
+            <div>
+              <h1>MoldeLab</h1>
+              <p>Editor vetorial de encaixe</p>
+            </div>
+          </div>
           <div class="main-menu">
             <details class="menu-dropdown">
               <summary><i data-lucide="folder"></i><span>Arquivo</span></summary>
-              <div class="menu-list">
+              <div class="menu-list menu-form">
+                <label>
+                  Nome do projeto
+                  <input id="projectName" type="text" value="MoldeLab Projeto" />
+                </label>
+                <label>
+                  Abrir projeto
+                  <input id="projectInput" type="file" accept=".moldelab.json,application/json" />
+                </label>
+                <label>
+                  Importar vetor
+                  <input id="vectorInput" type="file" accept=".svg,.dxf,.ads,.plt" />
+                </label>
                 <button id="saveProject"><i data-lucide="save"></i><span>Salvar projeto</span></button>
                 <button id="exportSvg"><i data-lucide="file-code"></i><span>Exportar SVG</span></button>
                 <button id="exportDxf"><i data-lucide="file-down"></i><span>Exportar DXF</span></button>
                 <button id="exportPlt"><i data-lucide="printer"></i><span>Exportar PLT</span></button>
                 <button id="exportMiniMarker"><i data-lucide="image"></i><span>Mini risco JPG</span></button>
+                <div id="importStatus" class="status-line">SVG, DXF e PLT simples importaveis. ADS precisa de amostras.</div>
+              </div>
+            </details>
+            <details class="menu-dropdown">
+              <summary><i data-lucide="layers"></i><span>Tecido</span></summary>
+              <div class="menu-list menu-form">
+                <label>
+                  Tipo de tecido
+                  <select id="fabricType">
+                    <option value="flat">Plano</option>
+                    <option value="tubular">Tubular</option>
+                  </select>
+                </label>
+                <label>
+                  Largura do tecido
+                  <input id="fabricWidth" type="number" min="80" max="240" step="5" value="150" />
+                </label>
+                <label>
+                  Margem entre pecas
+                  <input id="spacing" type="number" min="0" max="10" step="0.5" value="2" />
+                </label>
+                <label class="inline-check">
+                  <input id="snapToGrid" type="checkbox" />
+                  Ajustar a grade
+                </label>
+                <label>
+                  Passo da grade (cm)
+                  <input id="gridStep" type="number" min="0.1" max="10" step="0.1" value="1" />
+                </label>
+                <button id="autoNest" class="primary"><i data-lucide="sparkles"></i><span>Encaixe automatico</span></button>
               </div>
             </details>
             <details class="menu-dropdown">
@@ -175,6 +100,20 @@
               </div>
             </details>
             <details class="menu-dropdown">
+              <summary><i data-lucide="scan-line"></i><span>Digitalizacao</span></summary>
+              <div class="menu-list menu-form">
+                <label>
+                  Foto ou scan do molde
+                  <input id="imageInput" type="file" accept="image/*" />
+                </label>
+                <label>
+                  Medida de referencia (cm)
+                  <input id="calibrationLength" type="number" min="1" max="200" step="0.5" value="10" />
+                </label>
+                <div id="digitizeStatus" class="status-line">Importe uma imagem para comecar.</div>
+              </div>
+            </details>
+            <details class="menu-dropdown">
               <summary><i data-lucide="move-3d"></i><span>Transformar</span></summary>
               <div class="menu-list">
                 <button id="rotateLeft" title="Girar 15 graus para esquerda"><i data-lucide="rotate-ccw"></i><span>Girar -15 graus</span></button>
@@ -188,7 +127,44 @@
             </details>
             <details class="menu-dropdown">
               <summary><i data-lucide="scissors"></i><span>Peca</span></summary>
-              <div class="menu-list">
+              <div class="menu-list menu-form piece-menu">
+                <div id="selectionName" class="selected-name">Nenhuma peca</div>
+                <div id="pieceStats" class="piece-stats"></div>
+                <label>
+                  Nome da peca
+                  <input id="pieceName" type="text" value="" />
+                </label>
+                <label>
+                  Modelo
+                  <input id="pieceModel" type="text" value="" placeholder="Ex: Calca jeans" />
+                </label>
+                <label>
+                  Tamanho
+                  <input id="pieceSize" type="text" value="" placeholder="Ex: 40, M, GG" />
+                </label>
+                <label>
+                  Cor da peca
+                  <input id="pieceColor" type="color" value="#0891b2" />
+                </label>
+                <label>
+                  Margem de costura (cm)
+                  <input id="seamAllowance" type="number" min="0" max="8" step="0.1" value="0" />
+                </label>
+                <label>
+                  Rotacao
+                  <input id="rotation" type="range" min="0" max="345" step="15" value="0" />
+                </label>
+                <label>
+                  Sentido do fio
+                  <select id="grainAngle">
+                    <option value="0">0 graus</option>
+                    <option value="45">45 graus</option>
+                    <option value="90">90 graus</option>
+                    <option value="135">135 graus</option>
+                    <option value="180">180 graus</option>
+                    <option value="360">360 graus</option>
+                  </select>
+                </label>
                 <button id="duplicatePiece"><i data-lucide="copy"></i><span>Duplicar peca</span></button>
                 <button id="deletePiece"><i data-lucide="trash-2"></i><span>Apagar peca</span></button>
                 <button id="toggleLockPiece"><i data-lucide="lock"></i><span>Bloquear peca</span></button>
@@ -197,11 +173,19 @@
                 <button id="deletePoint"><i data-lucide="circle-x"></i><span>Apagar ponto</span></button>
               </div>
             </details>
-            <button id="autoNest" class="primary"><i data-lucide="sparkles"></i><span>Encaixe automatico</span></button>
+            <details class="menu-dropdown">
+              <summary><i data-lucide="list"></i><span>Lista</span></summary>
+              <div class="menu-list menu-form list-menu">
+                <div id="pieceList" class="piece-list"></div>
+              </div>
+            </details>
           </div>
           <div class="legend">
             <span><i class="ok"></i> livre</span>
             <span><i class="warn"></i> colisao</span>
+            <span><b id="usedLength">0 cm</b> usado</span>
+            <span><b id="efficiency">0%</b> aproveit.</span>
+            <span><b id="collisions">0</b> colis.</span>
           </div>
         </header>
         <div class="canvas-wrap">

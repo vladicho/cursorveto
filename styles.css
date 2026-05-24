@@ -31,8 +31,6 @@ select {
 }
 
 .app-shell {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -52,9 +50,14 @@ select {
   padding: 8px 0 14px;
 }
 
+.compact-brand {
+  flex: 0 0 auto;
+  padding: 0;
+}
+
 .brand-mark {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   display: grid;
   place-items: center;
   border-radius: 8px;
@@ -70,7 +73,7 @@ p {
 }
 
 h1 {
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.1;
 }
 
@@ -273,10 +276,22 @@ button span {
   box-shadow: 0 14px 35px rgba(17, 24, 39, 0.16);
 }
 
-.topbar .menu-dropdown:nth-of-type(5) .menu-list,
-.topbar .menu-dropdown:nth-of-type(6) .menu-list {
+.topbar .menu-dropdown:nth-last-of-type(-n + 3) .menu-list {
   left: auto;
   right: 0;
+}
+
+.menu-form {
+  min-width: 280px;
+  max-width: min(360px, calc(100vw - 28px));
+}
+
+.piece-menu {
+  min-width: 330px;
+}
+
+.list-menu {
+  min-width: 300px;
 }
 
 .menu-list .icon-action {
@@ -332,6 +347,8 @@ button.primary:hover {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
+  max-height: 220px;
+  overflow: auto;
 }
 
 .piece-stats div {
@@ -356,7 +373,7 @@ button.primary:hover {
 .piece-list {
   display: grid;
   gap: 8px;
-  max-height: 260px;
+  max-height: min(420px, calc(100vh - 150px));
   overflow: auto;
 }
 
@@ -468,10 +485,16 @@ button.primary:hover {
 
 .legend {
   display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   color: var(--muted);
   font-size: 13px;
   white-space: nowrap;
+}
+
+.legend b {
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .legend i {
@@ -508,15 +531,6 @@ canvas {
 }
 
 @media (max-width: 860px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-
   .topbar {
     align-items: flex-start;
     flex-direction: column;
