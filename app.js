@@ -39,6 +39,10 @@ const ui = {
   gridStep: document.querySelector("#gridStep"),
   addPiece: document.querySelector("#addPiece"),
   imageInput: document.querySelector("#imageInput"),
+  cameraPreview: document.querySelector("#cameraPreview"),
+  startCamera: document.querySelector("#startCamera"),
+  captureCamera: document.querySelector("#captureCamera"),
+  stopCamera: document.querySelector("#stopCamera"),
   calibrationLength: document.querySelector("#calibrationLength"),
   autoTrace: document.querySelector("#autoTrace"),
   digitizeStatus: document.querySelector("#digitizeStatus"),
@@ -108,6 +112,7 @@ let historySuspended = false;
 let lockButtonState = null;
 let gridButtonState = null;
 let pieceClipboard = null;
+let cameraStream = null;
 
 const pieces = [
   {
@@ -2479,21 +2484,77 @@ function importImage(file) {
   if (!file) return;
   const image = new Image();
   image.onload = () => {
-    backgroundImage = image;
-    const widthCm = 90;
-    background = {
-      x: 8,
-      y: 8,
-      widthCm,
-      heightCm: widthCm * (image.height / image.width),
-    };
-    calibrationPoints = [];
-    contourPoints = [];
-    mode = "calibrate";
-    updateDigitizeStatus("Clique dois pontos na imagem e informe a medida real.");
-    draw();
+    loadImageForDigitizing(image, "Clique dois pontos na imagem e informe a medida real.");
   };
   image.src = URL.createObjectURL(file);
+}
+
+function loadImageForDigitizing(image, message) {
+  backgroundImage = image;
+  const widthCm = 90;
+  background = {
+    x: 8,
+    y: 8,
+    widthCm,
+    heightCm: widthCm * (image.height / image.width),
+  };
+  calibrationPoints = [];
+  contourPoints = [];
+  mode = "calibrate";
+  updateDigitizeStatus(message);
+  draw();
+}
+
+function setCameraControls(active) {
+  ui.cameraPreview.hidden = !active;
+  ui.captureCamera.disabled = !active;
+  ui.stopCamera.disabled = !active;
+  ui.startCamera.disabled = active;
+}
+
+async function startCamera() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    updateDigitizeStatus("Camera nao disponivel neste navegador.");
+    return;
+  }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false,
+    });
+    ui.cameraPreview.srcObject = cameraStream;
+    await ui.cameraPreview.play();
+    setCameraControls(true);
+    updateDigitizeStatus("Camera aberta. Posicione o molde inteiro e use Capturar.");
+  } catch (error) {
+    updateDigitizeStatus("Nao consegui abrir a camera. Use HTTPS, localhost ou importe uma foto.");
+  }
+}
+
+function stopCamera() {
+  cameraStream?.getTracks().forEach((track) => track.stop());
+  cameraStream = null;
+  ui.cameraPreview.pause();
+  ui.cameraPreview.srcObject = null;
+  setCameraControls(false);
+  updateDigitizeStatus("Camera fechada.");
+}
+
+function captureCameraFrame() {
+  if (!cameraStream || !ui.cameraPreview.videoWidth) {
+    updateDigitizeStatus("Abra a camera antes de capturar.");
+    return;
+  }
+  const capture = document.createElement("canvas");
+  capture.width = ui.cameraPreview.videoWidth;
+  capture.height = ui.cameraPreview.videoHeight;
+  const captureCtx = capture.getContext("2d");
+  captureCtx.drawImage(ui.cameraPreview, 0, 0, capture.width, capture.height);
+  const image = new Image();
+  image.onload = () => {
+    loadImageForDigitizing(image, "Quadro capturado. Calibre a escala ou use Auto digitalizar.");
+  };
+  image.src = capture.toDataURL("image/jpeg", 0.92);
 }
 
 function calibrateImage() {
@@ -3110,6 +3171,9 @@ ui.copyPiece.addEventListener("click", copySelectedPiece);
 ui.pastePiece.addEventListener("click", pasteCopiedPiece);
 ui.finishTrace.addEventListener("click", finishTrace);
 ui.autoTrace.addEventListener("click", traceImageContour);
+ui.startCamera.addEventListener("click", startCamera);
+ui.captureCamera.addEventListener("click", captureCameraFrame);
+ui.stopCamera.addEventListener("click", stopCamera);
 ui.undoAction.addEventListener("click", undoAction);
 ui.redoAction.addEventListener("click", redoAction);
 ui.pieceList.addEventListener("click", (event) => {

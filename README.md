@@ -63,6 +63,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Exportacao SVG e DXF incluem cabecario fora do tecido e linha final do encaixe
 - Deteccao de sobreposicao
 - Digitalizacao por imagem com calibracao de escala
+- Captura por camera do celular ou webcam para digitalizacao ao vivo
 - Auto digitalizacao por varredura tipo scanner, contraste e diferenca de cor do fundo
 - Importacao SVG, DXF e PLT simples
 - Exportacao SVG
