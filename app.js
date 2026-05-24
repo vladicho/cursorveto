@@ -67,6 +67,7 @@ const ui = {
   statusCursor: document.querySelector("#statusCursor"),
   statusMessage: document.querySelector("#statusMessage"),
   pieceContextMenu: document.querySelector("#pieceContextMenu"),
+  canvasContextMenu: document.querySelector("#canvasContextMenu"),
 };
 
 const baseScale = 4;
@@ -664,10 +665,24 @@ function closeMenus(exceptMenu) {
     }
   });
   closePieceContextMenu();
+  closeCanvasContextMenu();
 }
 
 function closePieceContextMenu() {
   ui.pieceContextMenu.hidden = true;
+}
+
+function closeCanvasContextMenu() {
+  ui.canvasContextMenu.hidden = true;
+}
+
+function placeContextMenu(menu, event) {
+  menu.hidden = false;
+  const rect = menu.getBoundingClientRect();
+  const left = Math.min(event.clientX, window.innerWidth - rect.width - 8);
+  const top = Math.min(event.clientY, window.innerHeight - rect.height - 8);
+  menu.style.left = `${Math.max(8, left)}px`;
+  menu.style.top = `${Math.max(8, top)}px`;
 }
 
 function updatePieceContextMenu() {
@@ -691,14 +706,16 @@ function openPieceContextMenu(event, piece) {
   selectedPointIndex = vertex?.piece.id === piece.id ? vertex.index : null;
   mode = selectedPointIndex === null ? "move" : "points";
   updatePieceContextMenu();
-  ui.pieceContextMenu.hidden = false;
-  const rect = ui.pieceContextMenu.getBoundingClientRect();
-  const left = Math.min(event.clientX, window.innerWidth - rect.width - 8);
-  const top = Math.min(event.clientY, window.innerHeight - rect.height - 8);
-  ui.pieceContextMenu.style.left = `${Math.max(8, left)}px`;
-  ui.pieceContextMenu.style.top = `${Math.max(8, top)}px`;
+  placeContextMenu(ui.pieceContextMenu, event);
   updateImportStatus(`Peca selecionada: ${piece.name}.`);
   draw();
+}
+
+function openCanvasContextMenu(event) {
+  closeMenus();
+  selectedPointIndex = null;
+  placeContextMenu(ui.canvasContextMenu, event);
+  updateImportStatus("Menu do canvas aberto.");
 }
 
 function setupMenuBehavior() {
@@ -2094,7 +2111,7 @@ function finishTrace() {
 }
 
 canvas.addEventListener("pointerdown", (event) => {
-  closePieceContextMenu();
+  closeMenus();
   const screen = eventScreen(event);
   const point = screenToWorld(screen[0], screen[1]);
   const snappedPoint = snapPoint(point);
@@ -2209,7 +2226,7 @@ canvas.addEventListener("contextmenu", (event) => {
   event.preventDefault();
   const piece = pieceAt(eventWorld(event));
   if (!piece) {
-    closePieceContextMenu();
+    openCanvasContextMenu(event);
     return;
   }
   openPieceContextMenu(event, piece);
@@ -2452,10 +2469,28 @@ ui.pieceContextMenu.addEventListener("click", (event) => {
   closePieceContextMenu();
 });
 
+ui.canvasContextMenu.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-canvas-action]");
+  if (!button) return;
+  const actions = {
+    "add-piece": () => ui.addPiece.click(),
+    "auto-nest": () => ui.autoNest.click(),
+    draw: () => ui.modeDraw.click(),
+    measure: () => ui.modeMeasure.click(),
+    pan: () => ui.modePan.click(),
+    "zoom-in": () => ui.zoomIn.click(),
+    "zoom-out": () => ui.zoomOut.click(),
+    "reset-view": () => ui.resetView.click(),
+  };
+  actions[button.dataset.canvasAction]?.();
+  closeCanvasContextMenu();
+});
+
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeMenus();
     closePieceContextMenu();
+    closeCanvasContextMenu();
     return;
   }
 

@@ -20,6 +20,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Mensagens de importacao, digitalizacao e acoes visiveis na barra de status
 - Atalhos de teclado para modos, zoom, nova peca e salvar projeto
 - Menu contextual com clique direito sobre a peca ou ponto no canvas
+- Menu contextual no canvas vazio para nova peca, encaixe, modos e zoom
 - Criacao de moldes do zero por pontos
 - Pecas vetoriais arrastaveis
 - Lista de pecas para selecao rapida
