@@ -67,6 +67,13 @@ const ui = {
   usedLength: document.querySelector("#usedLength"),
   efficiency: document.querySelector("#efficiency"),
   collisions: document.querySelector("#collisions"),
+  headerWidth: document.querySelector("#headerWidth"),
+  headerLength: document.querySelector("#headerLength"),
+  headerPieces: document.querySelector("#headerPieces"),
+  headerEfficiency: document.querySelector("#headerEfficiency"),
+  headerGrade: document.querySelector("#headerGrade"),
+  headerModels: document.querySelector("#headerModels"),
+  headerFile: document.querySelector("#headerFile"),
   statusMode: document.querySelector("#statusMode"),
   statusPiece: document.querySelector("#statusPiece"),
   statusFabric: document.querySelector("#statusFabric"),
@@ -974,12 +981,36 @@ function renderPieceStats(piece) {
   `;
 }
 
+function uniqueFilled(values) {
+  const cleaned = values.map((value) => String(value || "").trim()).filter(Boolean);
+  return [...new Set(cleaned)];
+}
+
+function fitHeaderText(values, fallback = "-") {
+  if (!values.length) return fallback;
+  const text = values.join(", ");
+  return text.length > 42 ? `${text.slice(0, 39)}...` : text;
+}
+
+function updateMarkerHeader(stats) {
+  const grade = uniqueFilled(pieces.map((piece) => piece.size));
+  const models = uniqueFilled(pieces.map((piece) => piece.model || piece.name));
+  ui.headerWidth.textContent = `${Number(ui.fabricWidth.value).toFixed(0)} cm`;
+  ui.headerLength.textContent = `${stats.usedLength.toFixed(1)} cm`;
+  ui.headerPieces.textContent = String(pieces.length);
+  ui.headerEfficiency.textContent = `${stats.efficiency.toFixed(1)}%`;
+  ui.headerGrade.textContent = fitHeaderText(grade);
+  ui.headerModels.textContent = fitHeaderText(models);
+  ui.headerFile.textContent = safeProjectFilename("moldelab.json");
+}
+
 function updateMetrics(collisions) {
   const stats = markerStats();
 
   ui.usedLength.textContent = `${stats.usedLength.toFixed(1)} cm`;
   ui.efficiency.textContent = `${stats.efficiency.toFixed(1)}%`;
   ui.collisions.textContent = String(collisions.pairs);
+  updateMarkerHeader(stats);
 
   const piece = selectedPiece();
   updateGridButtons();
@@ -1194,7 +1225,9 @@ function autoNest() {
 
   draw();
   const stats = markerStats();
-  updateImportStatus(`Encaixe automatico: ${stats.efficiency.toFixed(1)}% de aproveitamento em ${stats.usedLength.toFixed(1)} cm.`);
+  updateImportStatus(
+    `Encaixe automatico: novo comprimento ${stats.usedLength.toFixed(1)} cm, aproveitamento ${stats.efficiency.toFixed(1)}%.`,
+  );
 }
 
 function exportSvgMarkup() {
@@ -2598,6 +2631,7 @@ ui.toggleLockPiece.addEventListener("click", toggleSelectedPieceLock);
 ui.addNotch.addEventListener("click", addNotchToSelectedPoint);
 ui.deleteNotch.addEventListener("click", deleteNotchFromSelectedPoint);
 ui.deletePoint.addEventListener("click", deleteSelectedPoint);
+ui.projectName.addEventListener("input", () => updateMarkerHeader(markerStats()));
 ui.pieceName.addEventListener("change", renameSelectedPiece);
 ui.pieceModel.addEventListener("change", () => updateSelectedPieceMeta("model", ui.pieceModel));
 ui.pieceSize.addEventListener("change", () => updateSelectedPieceMeta("size", ui.pieceSize));

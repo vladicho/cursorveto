@@ -599,6 +599,48 @@ button.primary:hover {
   flex: 1 1 260px;
 }
 
+.marker-header {
+  border-bottom: 1px solid var(--line);
+  background: #fbfcf9;
+  overflow-x: auto;
+}
+
+.marker-header table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.marker-header th,
+.marker-header td {
+  border-right: 1px solid var(--line);
+  padding: 7px 9px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.marker-header th {
+  background: #eef3ee;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.marker-header td {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.marker-header th:last-child,
+.marker-header td:last-child {
+  border-right: 0;
+}
+
 .canvas-wrap {
   overflow: auto;
   padding: 22px;
