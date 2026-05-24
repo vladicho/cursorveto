@@ -12,6 +12,7 @@ const ui = {
   autoNest: document.querySelector("#autoNest"),
   saveProject: document.querySelector("#saveProject"),
   exportSvg: document.querySelector("#exportSvg"),
+  exportDxf: document.querySelector("#exportDxf"),
   exportPlt: document.querySelector("#exportPlt"),
   exportMiniMarker: document.querySelector("#exportMiniMarker"),
   modeMove: document.querySelector("#modeMove"),
@@ -702,6 +703,51 @@ function exportSvgMarkup() {
 
 function exportSvg() {
   downloadFile(exportSvgMarkup(), "risco-moldelab.svg", "image/svg+xml");
+}
+
+function dxfPair(code, value) {
+  return `${code}\n${value}`;
+}
+
+function dxfPolyline(points, layer, closed = true) {
+  const lines = [
+    dxfPair(0, "LWPOLYLINE"),
+    dxfPair(8, layer),
+    dxfPair(90, points.length),
+    dxfPair(70, closed ? 1 : 0),
+  ];
+  points.forEach(([x, y]) => {
+    lines.push(dxfPair(10, x.toFixed(3)));
+    lines.push(dxfPair(20, y.toFixed(3)));
+  });
+  return lines;
+}
+
+function exportDxfMarkup() {
+  const lines = [
+    dxfPair(0, "SECTION"),
+    dxfPair(2, "HEADER"),
+    dxfPair(9, "$INSUNITS"),
+    dxfPair(70, 5),
+    dxfPair(0, "ENDSEC"),
+    dxfPair(0, "SECTION"),
+    dxfPair(2, "ENTITIES"),
+  ];
+
+  pieces.forEach((piece) => {
+    const points = transformedPoints(piece);
+    if (points.length < 3) return;
+    lines.push(...dxfPolyline(points, "MOLDE_CONTORNO", true));
+    lines.push(...dxfPolyline(pieceGrainlinePoints(piece, points), "MOLDE_FIO", false));
+  });
+
+  lines.push(dxfPair(0, "ENDSEC"));
+  lines.push(dxfPair(0, "EOF"));
+  return `${lines.join("\n")}\n`;
+}
+
+function exportDxf() {
+  downloadFile(exportDxfMarkup(), safeProjectFilename("dxf"), "application/dxf");
 }
 
 function hpglPoint([x, y]) {
@@ -1581,6 +1627,7 @@ ui.spacing.addEventListener("input", draw);
 ui.autoNest.addEventListener("click", autoNest);
 ui.saveProject.addEventListener("click", saveProject);
 ui.exportSvg.addEventListener("click", exportSvg);
+ui.exportDxf.addEventListener("click", exportDxf);
 ui.exportPlt.addEventListener("click", exportPlt);
 ui.exportMiniMarker.addEventListener("click", exportMiniMarker);
 ui.addPiece.addEventListener("click", addPiece);
