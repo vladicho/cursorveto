@@ -28,6 +28,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Digitalizacao por imagem com calibracao de escala
 - Importacao SVG, DXF e PLT simples
 - Exportacao SVG
+- Exportacao PLT/HPGL para risco em plotter
 - Mini risco em JPG
 - Salvar e abrir projeto `.moldelab.json`
 
@@ -46,11 +47,12 @@ Planejado:
 Exportacao atual:
 
 - `.svg`
+- `.plt`
+- `.jpg` mini risco
 
 Planejado:
 
 - `.dxf`
-- `.pdf`
 
 ## Como abrir
 

@@ -12,6 +12,7 @@ const ui = {
   autoNest: document.querySelector("#autoNest"),
   saveProject: document.querySelector("#saveProject"),
   exportSvg: document.querySelector("#exportSvg"),
+  exportPlt: document.querySelector("#exportPlt"),
   exportMiniMarker: document.querySelector("#exportMiniMarker"),
   modeMove: document.querySelector("#modeMove"),
   modePoints: document.querySelector("#modePoints"),
@@ -701,6 +702,58 @@ function exportSvgMarkup() {
 
 function exportSvg() {
   downloadFile(exportSvgMarkup(), "risco-moldelab.svg", "image/svg+xml");
+}
+
+function hpglPoint([x, y]) {
+  const unitsPerCm = 400;
+  return [Math.round(x * unitsPerCm), Math.round(y * unitsPerCm)];
+}
+
+function pieceGrainlinePoints(piece, points) {
+  const box = bounds(points);
+  const centerX = (box.minX + box.maxX) / 2;
+  const centerY = (box.minY + box.maxY) / 2;
+  const length = Math.max(12, Math.min(box.maxX - box.minX, box.maxY - box.minY) * 0.55);
+  const angle = (((piece.grainAngle || 0) % 360) * Math.PI) / 180;
+  const dx = Math.sin(angle) * length * 0.5;
+  const dy = Math.cos(angle) * length * 0.5;
+  return [
+    [centerX - dx, centerY - dy],
+    [centerX + dx, centerY + dy],
+  ];
+}
+
+function exportPltMarkup() {
+  const commands = ["IN;", "SP1;", "VS20;"];
+
+  pieces.forEach((piece) => {
+    const points = transformedPoints(piece);
+    if (points.length < 2) return;
+    const [startX, startY] = hpglPoint(points[0]);
+    commands.push(`PU${startX},${startY};`);
+    commands.push(`PD${points.map((point) => hpglPoint(point).join(",")).join(",")},${startX},${startY};`);
+    commands.push("PU;");
+
+    const grainline = pieceGrainlinePoints(piece, points).map(hpglPoint);
+    commands.push(`PU${grainline[0][0]},${grainline[0][1]};`);
+    commands.push(`PD${grainline[1][0]},${grainline[1][1]};`);
+    commands.push("PU;");
+  });
+
+  commands.push("SP0;");
+  return commands.join("\n");
+}
+
+function safeProjectFilename(extension) {
+  const safeName = (ui.projectName.value || "MoldeLab Projeto")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "moldelab-projeto";
+  return `${safeName}.${extension}`;
+}
+
+function exportPlt() {
+  downloadFile(exportPltMarkup(), safeProjectFilename("plt"), "application/vnd.hp-hpgl");
 }
 
 function exportMiniMarker() {
@@ -1528,6 +1581,7 @@ ui.spacing.addEventListener("input", draw);
 ui.autoNest.addEventListener("click", autoNest);
 ui.saveProject.addEventListener("click", saveProject);
 ui.exportSvg.addEventListener("click", exportSvg);
+ui.exportPlt.addEventListener("click", exportPlt);
 ui.exportMiniMarker.addEventListener("click", exportMiniMarker);
 ui.addPiece.addEventListener("click", addPiece);
 ui.finishTrace.addEventListener("click", finishTrace);
