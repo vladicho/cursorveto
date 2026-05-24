@@ -283,6 +283,30 @@ function vertexAt(screenPoint) {
   return null;
 }
 
+function distanceToSegment(point, start, end) {
+  const dx = end[0] - start[0];
+  const dy = end[1] - start[1];
+  const lengthSq = dx * dx + dy * dy;
+  if (!lengthSq) return Math.hypot(point[0] - start[0], point[1] - start[1]);
+  const t = Math.max(0, Math.min(1, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / lengthSq));
+  const projection = [start[0] + t * dx, start[1] + t * dy];
+  return Math.hypot(point[0] - projection[0], point[1] - projection[1]);
+}
+
+function edgeAt(screenPoint) {
+  const piece = selectedPiece();
+  if (!piece) return null;
+  const points = transformedPoints(piece);
+  for (let index = 0; index < points.length; index += 1) {
+    const start = worldToScreen(points[index]);
+    const end = worldToScreen(points[(index + 1) % points.length]);
+    if (distanceToSegment(screenPoint, start, end) <= 8) {
+      return { piece, insertAfter: index };
+    }
+  }
+  return null;
+}
+
 function collisionInfo() {
   const collisions = new Set();
   let pairs = 0;
@@ -1275,6 +1299,16 @@ canvas.addEventListener("pointerdown", (event) => {
       selectedPointIndex = vertex.index;
       dragState = { type: "vertex", pieceId: vertex.piece.id, pointIndex: vertex.index };
       canvas.setPointerCapture(event.pointerId);
+      draw();
+      return;
+    }
+
+    const edge = edgeAt(screen);
+    if (edge) {
+      const localPoint = inverseTransformedPoint(edge.piece, point);
+      edge.piece.points.splice(edge.insertAfter + 1, 0, localPoint);
+      selectedPointIndex = edge.insertAfter + 1;
+      updateImportStatus(`Ponto inserido em ${edge.piece.name}.`);
       draw();
       return;
     }
