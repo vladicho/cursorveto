@@ -32,6 +32,7 @@ const ui = {
   snapToGrid: document.querySelector("#snapToGrid"),
   showGrid: document.querySelector("#showGrid"),
   toggleGrid: document.querySelector("#toggleGrid"),
+  canvasToggleGrid: document.querySelector('[data-canvas-action="toggle-grid"]'),
   gridStep: document.querySelector("#gridStep"),
   addPiece: document.querySelector("#addPiece"),
   imageInput: document.querySelector("#imageInput"),
@@ -94,6 +95,7 @@ let undoStack = [];
 let redoStack = [];
 let historySuspended = false;
 let lockButtonState = null;
+let gridButtonState = null;
 
 const pieces = [
   {
@@ -768,6 +770,16 @@ function modeLabel() {
   return labels[mode] || mode;
 }
 
+function updateGridButtons() {
+  const nextState = ui.showGrid.checked ? "visible" : "hidden";
+  if (gridButtonState === nextState) return;
+  const label = ui.showGrid.checked ? "Ocultar grade" : "Mostrar grade";
+  ui.toggleGrid.innerHTML = `${iconButtonMarkup("grid-2x2", label)}<kbd>G</kbd>`;
+  ui.canvasToggleGrid.innerHTML = iconButtonMarkup("grid-2x2", label);
+  gridButtonState = nextState;
+  refreshIcons();
+}
+
 function renderPieceList() {
   ui.pieceList.innerHTML = pieces
     .map((piece, index) => {
@@ -824,6 +836,7 @@ function updateMetrics(collisions) {
   ui.collisions.textContent = String(collisions.pairs);
 
   const piece = selectedPiece();
+  updateGridButtons();
   ui.statusMode.textContent = modeLabel();
   ui.statusPiece.textContent = piece ? pieceDisplayLabel(piece) : "Nenhuma";
   ui.statusFabric.textContent = `${ui.fabricType.value === "tubular" ? "Tubular" : "Plano"} ${Number(ui.fabricWidth.value).toFixed(0)} cm`;
@@ -2356,7 +2369,10 @@ ui.resetView.addEventListener("click", () => {
   draw();
 });
 ui.fitView.addEventListener("click", fitViewToPieces);
-ui.showGrid.addEventListener("change", draw);
+ui.showGrid.addEventListener("change", () => {
+  updateImportStatus(ui.showGrid.checked ? "Grade visivel." : "Grade oculta.");
+  draw();
+});
 ui.toggleGrid.addEventListener("click", () => {
   ui.showGrid.checked = !ui.showGrid.checked;
   updateImportStatus(ui.showGrid.checked ? "Grade visivel." : "Grade oculta.");

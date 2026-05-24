@@ -23,6 +23,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Menu contextual no canvas vazio para nova peca, encaixe, modos e zoom
 - Ajustar a tela para enquadrar todas as pecas rapidamente
 - Grade visual opcional usando o passo configurado em centimetros
+- Botao de grade alterna entre mostrar e ocultar conforme estado atual
 - Criacao de moldes do zero por pontos
 - Pecas vetoriais arrastaveis
 - Lista de pecas para selecao rapida
