@@ -40,6 +40,7 @@ const ui = {
   addPiece: document.querySelector("#addPiece"),
   imageInput: document.querySelector("#imageInput"),
   calibrationLength: document.querySelector("#calibrationLength"),
+  autoTrace: document.querySelector("#autoTrace"),
   digitizeStatus: document.querySelector("#digitizeStatus"),
   pieceList: document.querySelector("#pieceList"),
   rotateLeft: document.querySelector("#rotateLeft"),
@@ -2547,6 +2548,120 @@ function finishTrace() {
   draw();
 }
 
+function traceImageContour() {
+  if (!backgroundImage || !background) {
+    updateDigitizeStatus("Importe uma imagem antes de auto digitalizar.");
+    return;
+  }
+
+  const maxSize = 640;
+  const scale = Math.min(1, maxSize / Math.max(backgroundImage.width, backgroundImage.height));
+  const width = Math.max(1, Math.round(backgroundImage.width * scale));
+  const height = Math.max(1, Math.round(backgroundImage.height * scale));
+  const traceCanvas = document.createElement("canvas");
+  traceCanvas.width = width;
+  traceCanvas.height = height;
+  const traceCtx = traceCanvas.getContext("2d", { willReadFrequently: true });
+  traceCtx.drawImage(backgroundImage, 0, 0, width, height);
+  const { data } = traceCtx.getImageData(0, 0, width, height);
+  const lum = (index) => data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
+  const borderSamples = [];
+
+  for (let x = 0; x < width; x += 8) {
+    borderSamples.push(lum(x * 4));
+    borderSamples.push(lum(((height - 1) * width + x) * 4));
+  }
+  for (let y = 0; y < height; y += 8) {
+    borderSamples.push(lum(y * width * 4));
+    borderSamples.push(lum((y * width + width - 1) * 4));
+  }
+
+  const backgroundLum = borderSamples.reduce((total, value) => total + value, 0) / Math.max(1, borderSamples.length);
+  const threshold = Math.max(22, backgroundLum * 0.1);
+  const mask = new Uint8Array(width * height);
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 4;
+      const alpha = data[offset + 3];
+      const pixelLum = lum(offset);
+      if (alpha > 32 && pixelLum < backgroundLum - threshold) mask[y * width + x] = 1;
+    }
+  }
+
+  const visited = new Uint8Array(width * height);
+  let bestComponent = [];
+  const neighbors = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+  ];
+
+  for (let index = 0; index < mask.length; index += 1) {
+    if (!mask[index] || visited[index]) continue;
+    const stack = [index];
+    const component = [];
+    visited[index] = 1;
+    while (stack.length) {
+      const current = stack.pop();
+      component.push(current);
+      const x = current % width;
+      const y = Math.floor(current / width);
+      neighbors.forEach(([dx, dy]) => {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) return;
+        const next = ny * width + nx;
+        if (!mask[next] || visited[next]) return;
+        visited[next] = 1;
+        stack.push(next);
+      });
+    }
+    if (component.length > bestComponent.length) bestComponent = component;
+  }
+
+  if (bestComponent.length < 80) {
+    updateDigitizeStatus("Nao encontrei um contorno forte. Tente uma imagem com mais contraste.");
+    return;
+  }
+
+  const center = bestComponent.reduce(
+    (acc, index) => [acc[0] + (index % width), acc[1] + Math.floor(index / width)],
+    [0, 0],
+  );
+  center[0] /= bestComponent.length;
+  center[1] /= bestComponent.length;
+
+  const binCount = 96;
+  const bins = Array.from({ length: binCount }, () => null);
+  bestComponent.forEach((index) => {
+    const x = index % width;
+    const y = Math.floor(index / width);
+    const angle = (Math.atan2(y - center[1], x - center[0]) + Math.PI * 2) % (Math.PI * 2);
+    const bin = Math.floor((angle / (Math.PI * 2)) * binCount);
+    const distance = Math.hypot(x - center[0], y - center[1]);
+    if (!bins[bin] || distance > bins[bin].distance) bins[bin] = { x, y, distance };
+  });
+
+  const tracedPoints = bins
+    .filter(Boolean)
+    .map(({ x, y }) => [
+      background.x + (x / width) * background.widthCm,
+      background.y + (y / height) * background.heightCm,
+    ]);
+
+  if (tracedPoints.length < 12) {
+    updateDigitizeStatus("Contorno automatico incompleto. Use a digitalizacao manual nesta imagem.");
+    return;
+  }
+
+  contourPoints = tracedPoints;
+  mode = "trace";
+  finishTrace();
+  updateDigitizeStatus(`Auto digitalizacao criada com ${tracedPoints.length} pontos. Ajuste os pontos se precisar.`);
+}
+
 canvas.addEventListener("pointerdown", (event) => {
   closeMenus();
   const screen = eventScreen(event);
@@ -2882,6 +2997,7 @@ ui.addPiece.addEventListener("click", addPiece);
 ui.copyPiece.addEventListener("click", copySelectedPiece);
 ui.pastePiece.addEventListener("click", pasteCopiedPiece);
 ui.finishTrace.addEventListener("click", finishTrace);
+ui.autoTrace.addEventListener("click", traceImageContour);
 ui.undoAction.addEventListener("click", undoAction);
 ui.redoAction.addEventListener("click", redoAction);
 ui.pieceList.addEventListener("click", (event) => {
