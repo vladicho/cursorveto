@@ -43,6 +43,7 @@ const ui = {
   alignPieceLeft: document.querySelector("#alignPieceLeft"),
   alignPieceTop: document.querySelector("#alignPieceTop"),
   pieceName: document.querySelector("#pieceName"),
+  pieceColor: document.querySelector("#pieceColor"),
   seamAllowance: document.querySelector("#seamAllowance"),
   duplicatePiece: document.querySelector("#duplicatePiece"),
   deletePiece: document.querySelector("#deletePiece"),
@@ -455,13 +456,14 @@ function drawFabric() {
 
 function drawVertices(piece) {
   if (mode !== "points" || selectedId !== piece.id) return;
+  const pieceColor = safePieceColor(piece.color);
   transformedPoints(piece).forEach((point, index) => {
     const [x, y] = worldToScreen(point);
     const hasNotch = piece.notches?.includes(index);
     ctx.beginPath();
     ctx.arc(x, y, selectedPointIndex === index ? 8 : 6, 0, Math.PI * 2);
     ctx.fillStyle = selectedPointIndex === index ? "#facc15" : hasNotch ? "#be123c" : index === 0 ? "#111827" : "#ffffff";
-    ctx.strokeStyle = piece.color;
+    ctx.strokeStyle = pieceColor;
     ctx.lineWidth = 2;
     ctx.fill();
     ctx.stroke();
@@ -574,9 +576,10 @@ function drawGrainline(piece, points) {
 
 function drawPiece(piece, hasCollision) {
   const points = transformedPoints(piece);
+  const pieceColor = safePieceColor(piece.color);
   drawPolyline(points, true);
-  ctx.fillStyle = hasCollision ? "rgba(194, 65, 12, 0.18)" : `${piece.color}26`;
-  ctx.strokeStyle = hasCollision ? "#c2410c" : piece.color;
+  ctx.fillStyle = hasCollision ? "rgba(194, 65, 12, 0.18)" : `${pieceColor}26`;
+  ctx.strokeStyle = hasCollision ? "#c2410c" : pieceColor;
   ctx.lineWidth = selectedId === piece.id ? 4 : 2;
   ctx.fill();
   ctx.stroke();
@@ -615,6 +618,10 @@ function escapeHtml(value) {
   ));
 }
 
+function safePieceColor(value) {
+  return /^#[0-9a-f]{6}$/i.test(value) ? value : "#475569";
+}
+
 function renderPieceList() {
   ui.pieceList.innerHTML = pieces
     .map((piece, index) => {
@@ -623,7 +630,7 @@ function renderPieceList() {
       const seam = Number(piece.seamAllowance || 0).toFixed(1);
       const active = selectedId === piece.id ? " active" : "";
       const lockLabel = piece.locked ? " · bloqueada" : "";
-      const color = /^#[0-9a-f]{6}$/i.test(piece.color) ? piece.color : "#475569";
+      const color = safePieceColor(piece.color);
       return `<button class="piece-list-item${active}" data-piece-id="${piece.id}">
         <span><i style="background:${color}"></i>${index + 1}. ${escapeHtml(piece.name)}</span>
         <small>${pointCount} pts · ${notchCount} piques · ${seam} cm${lockLabel}</small>
@@ -672,6 +679,7 @@ function updateMetrics(collisions) {
   const piece = selectedPiece();
   ui.selectionName.textContent = piece ? piece.name : "Nenhuma peca";
   ui.pieceName.value = piece ? piece.name : "";
+  ui.pieceColor.value = piece ? safePieceColor(piece.color) : "#475569";
   ui.toggleLockPiece.textContent = piece?.locked ? "Desbloquear peca" : "Bloquear peca";
   if (document.activeElement !== ui.seamAllowance) {
     ui.seamAllowance.value = piece ? Number(piece.seamAllowance || 0).toFixed(1) : 0;
@@ -868,6 +876,7 @@ function exportSvgMarkup() {
   const paths = pieces
     .map((piece) => {
       const points = transformedPoints(piece);
+      const pieceColor = safePieceColor(piece.color);
       const d = points.map(([x, y], index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
       const seamPoints = seamAllowancePoints(piece, points);
       const seam =
@@ -880,7 +889,7 @@ function exportSvgMarkup() {
             `<line x1="${start[0].toFixed(2)}" y1="${start[1].toFixed(2)}" x2="${end[0].toFixed(2)}" y2="${end[1].toFixed(2)}" stroke="#be123c" stroke-width="0.45"/>`,
         )
         .join("");
-      return `<g><path d="${d} Z" fill="${piece.color}22" stroke="${piece.color}" stroke-width="0.6"><title>${piece.name}</title></path>${seam}${notches}</g>`;
+      return `<g><path d="${d} Z" fill="${pieceColor}22" stroke="${pieceColor}" stroke-width="0.6"><title>${escapeHtml(piece.name)}</title></path>${seam}${notches}</g>`;
     })
     .join("\n  ");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${fabricWidth}cm" height="${fabricHeight}cm" viewBox="0 0 ${fabricWidth} ${fabricHeight}">
@@ -1061,6 +1070,7 @@ function exportMiniMarker() {
 
   pieces.forEach((piece) => {
     const points = transformedPoints(piece);
+    const pieceColor = safePieceColor(piece.color);
     out.beginPath();
     points.forEach(([x, y], index) => {
       const px = ox + x * previewScale;
@@ -1069,8 +1079,8 @@ function exportMiniMarker() {
       else out.lineTo(px, py);
     });
     out.closePath();
-    out.fillStyle = `${piece.color}22`;
-    out.strokeStyle = piece.color;
+    out.fillStyle = `${pieceColor}22`;
+    out.strokeStyle = pieceColor;
     out.lineWidth = 3;
     out.fill();
     out.stroke();
@@ -1396,6 +1406,21 @@ function updateSelectedSeamAllowance() {
   if (piece.seamAllowance === nextAllowance) return;
   recordHistory();
   piece.seamAllowance = nextAllowance;
+  draw();
+}
+
+function updateSelectedPieceColor() {
+  const piece = selectedPiece();
+  if (!piece) return;
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de alterar a cor.");
+    ui.pieceColor.value = safePieceColor(piece.color);
+    return;
+  }
+  const nextColor = safePieceColor(ui.pieceColor.value);
+  if (piece.color === nextColor) return;
+  recordHistory();
+  piece.color = nextColor;
   draw();
 }
 
@@ -2152,6 +2177,7 @@ ui.addNotch.addEventListener("click", addNotchToSelectedPoint);
 ui.deleteNotch.addEventListener("click", deleteNotchFromSelectedPoint);
 ui.deletePoint.addEventListener("click", deleteSelectedPoint);
 ui.pieceName.addEventListener("change", renameSelectedPiece);
+ui.pieceColor.addEventListener("change", updateSelectedPieceColor);
 ui.seamAllowance.addEventListener("input", updateSelectedSeamAllowance);
 
 ui.rotation.addEventListener("input", () => {

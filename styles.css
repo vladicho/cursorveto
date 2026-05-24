@@ -107,6 +107,7 @@ label {
 input[type="number"],
 input[type="text"],
 input[type="file"],
+input[type="color"],
 select {
   height: 38px;
   border: 1px solid var(--line);
@@ -114,6 +115,10 @@ select {
   padding: 0 10px;
   color: var(--ink);
   background: white;
+}
+
+input[type="color"] {
+  padding: 4px;
 }
 
 input[type="file"] {

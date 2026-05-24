@@ -16,6 +16,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Criacao de moldes do zero por pontos
 - Pecas vetoriais arrastaveis
 - Lista de pecas para selecao rapida
+- Cores por peca para diferenciar modelos e tamanhos no encaixe
 - Bloqueio de pecas para evitar edicao ou encaixe acidental
 - Medidas tecnicas da peca selecionada
 - Alinhamento rapido da peca selecionada no tecido
