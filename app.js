@@ -400,6 +400,79 @@ function collisionInfo() {
   return { ids: collisions, pairs };
 }
 
+function placementInfo(piece, rotation = piece.rotation) {
+  const rotatedPiece = { ...piece, x: 0, y: 0, rotation };
+  const box = bounds(transformedPoints(rotatedPiece));
+  return {
+    box,
+    width: box.maxX - box.minX,
+    height: box.maxY - box.minY,
+  };
+}
+
+function placedPieceInfo(piece) {
+  const points = transformedPoints(piece);
+  return {
+    piece,
+    points,
+    box: bounds(points),
+  };
+}
+
+function boxesTooClose(a, b, spacing) {
+  return !(a.maxX + spacing <= b.minX || b.maxX + spacing <= a.minX || a.maxY + spacing <= b.minY || b.maxY + spacing <= a.minY);
+}
+
+function placementFits(points, box, placed, fabricWidth, spacing) {
+  if (box.minY < spacing || box.maxY > fabricWidth - spacing) return false;
+  if (box.minX < spacing) return false;
+  return placed.every((item) => !boxesTooClose(box, item.box, spacing) || !polygonsOverlap(points, item.points));
+}
+
+function candidateCoordinates(placed, spacing, startX = spacing, fixedY = null) {
+  const xValues = new Set([Number(startX.toFixed(2)), Number(spacing.toFixed(2))]);
+  const yValues = new Set([Number(spacing.toFixed(2))]);
+
+  placed.forEach(({ box }) => {
+    xValues.add(Number((box.maxX + spacing).toFixed(2)));
+    xValues.add(Number(Math.max(spacing, box.minX).toFixed(2)));
+    yValues.add(Number((box.maxY + spacing).toFixed(2)));
+    yValues.add(Number(Math.max(spacing, box.minY).toFixed(2)));
+  });
+
+  return {
+    xValues: [...xValues].filter((value) => value >= spacing).sort((a, b) => a - b),
+    yValues: fixedY === null ? [...yValues].filter((value) => value >= spacing).sort((a, b) => a - b) : [fixedY],
+  };
+}
+
+function findBestPlacement(piece, placed, fabricWidth, spacing, options = {}) {
+  const rotation = Number(piece.grainAngle || 0) % 360;
+  const info = placementInfo(piece, rotation);
+  const startX = options.startX ?? spacing;
+  const fixedY = options.fixedY ?? null;
+  const { xValues, yValues } = candidateCoordinates(placed, spacing, startX, fixedY);
+  let best = null;
+
+  xValues.forEach((candidateX) => {
+    yValues.forEach((candidateY) => {
+      const x = candidateX - info.box.minX;
+      const y = candidateY - info.box.minY;
+      const testPiece = { ...piece, x, y, rotation };
+      const points = transformedPoints(testPiece);
+      const box = bounds(points);
+      if (!placementFits(points, box, placed, fabricWidth, spacing)) return;
+      const usedLength = Math.max(...placed.map((item) => item.box.maxX), 0, box.maxX);
+      const score = usedLength * 100000 + box.minX * 100 + box.minY;
+      if (!best || score < best.score) {
+        best = { x, y, rotation, points, box, score };
+      }
+    });
+  });
+
+  return best;
+}
+
 function drawRulers(length, width) {
   ctx.fillStyle = "#5d6966";
   ctx.font = "12px Arial";
@@ -1034,46 +1107,34 @@ function autoNest() {
   const unlocked = ordered.filter((piece) => !piece.locked);
   const foldPieces = isTubular ? unlocked.filter((piece) => piece.mirrored) : [];
   const regularPieces = unlocked.filter((piece) => !(isTubular && piece.mirrored));
-  let cursorX = spacing;
-  let cursorY = spacing;
-  let columnWidth = 0;
-  let tubularTopX = spacing;
-  let tubularBottomX = spacing;
+  const placed = pieces.filter((piece) => piece.locked).map(placedPieceInfo);
+  let foldStartX = spacing;
 
   foldPieces.forEach((piece) => {
-    piece.rotation = Number(piece.grainAngle || 0) % 360;
-    const box = bounds(transformedPoints({ ...piece, x: 0, y: 0 }));
-    const width = box.maxX - box.minX;
-    const height = box.maxY - box.minY;
-    const useBottomFold = tubularBottomX < tubularTopX;
-    piece.x = (useBottomFold ? tubularBottomX : tubularTopX) - box.minX;
-    piece.y = useBottomFold ? fabricWidth - height - spacing - box.minY : spacing - box.minY;
-    if (useBottomFold) tubularBottomX += width + spacing;
-    else tubularTopX += width + spacing;
-  });
+    const info = placementInfo(piece, Number(piece.grainAngle || 0) % 360);
+    const topPlacement = findBestPlacement(piece, placed, fabricWidth, spacing, { startX: spacing, fixedY: spacing });
+    const bottomY = Math.max(spacing, fabricWidth - info.height - spacing);
+    const bottomPlacement = findBestPlacement(piece, placed, fabricWidth, spacing, { startX: spacing, fixedY: bottomY });
+    const placement =
+      bottomPlacement && (!topPlacement || bottomPlacement.score < topPlacement.score) ? bottomPlacement : topPlacement;
 
-  if (foldPieces.length) {
-    cursorX = Math.max(tubularTopX, tubularBottomX);
-  }
+    if (!placement) return;
+    piece.rotation = placement.rotation;
+    piece.x = placement.x;
+    piece.y = placement.y;
+    placed.push({ piece, points: placement.points, box: placement.box });
+    foldStartX = Math.max(foldStartX, placement.box.maxX + spacing);
+  });
 
   regularPieces.forEach((piece) => {
-    piece.rotation = Number(piece.grainAngle || 0) % 360;
-    const box = bounds(transformedPoints({ ...piece, x: 0, y: 0 }));
-    const width = box.maxX - box.minX;
-    const height = box.maxY - box.minY;
-
-    if (cursorY + height + spacing > fabricWidth) {
-      cursorY = spacing;
-      cursorX += columnWidth + spacing;
-      columnWidth = 0;
-    }
-
-    piece.x = cursorX - box.minX;
-    piece.y = cursorY - box.minY;
-    cursorY += height + spacing;
-    columnWidth = Math.max(columnWidth, width);
+    const placement = findBestPlacement(piece, placed, fabricWidth, spacing, { startX: foldPieces.length ? foldStartX : spacing });
+    if (!placement) return;
+    piece.rotation = placement.rotation;
+    piece.x = placement.x;
+    piece.y = placement.y;
+    placed.push({ piece, points: placement.points, box: placement.box });
   });
-  updateImportStatus("Encaixe automatico aplicado. A largura ficou fixa e o comprimento do risco cresceu conforme as pecas.");
+  updateImportStatus("Encaixe automatico otimizado: largura fixa, comprimento minimo possivel e aproveitamento melhorado.");
   draw();
 }
 

@@ -51,6 +51,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Espelhamento e rotacao de pecas
 - Encaixe automatico simples
 - Encaixe usa largura fixa do tecido e aumenta o comprimento do risco conforme necessario
+- Encaixe tenta reaproveitar vazios entre pecas para aumentar o aproveitamento do tecido
 - Deteccao de sobreposicao
 - Digitalizacao por imagem com calibracao de escala
 - Importacao SVG, DXF e PLT simples
