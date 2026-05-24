@@ -63,6 +63,10 @@
                   <input id="snapToGrid" type="checkbox" />
                   Ajustar a grade
                 </label>
+                <label class="inline-check">
+                  <input id="showGrid" type="checkbox" checked />
+                  Mostrar grade
+                </label>
                 <label>
                   Passo da grade (cm)
                   <input id="gridStep" type="number" min="0.1" max="10" step="0.1" value="1" />
@@ -89,6 +93,7 @@
                 <button id="resetView" title="Centralizar"><i data-lucide="maximize"></i><span>Centralizar 100%</span><kbd>0</kbd></button>
                 <button id="fitView" title="Ajustar pecas a tela"><i data-lucide="scan-search"></i><span>Ajustar a tela</span><kbd>F</kbd></button>
                 <button id="zoomIn" title="Aumentar zoom"><i data-lucide="zoom-in"></i><span>Aumentar zoom</span><kbd>+</kbd></button>
+                <button id="toggleGrid" title="Mostrar ou ocultar grade"><i data-lucide="grid-2x2"></i><span>Mostrar grade</span><kbd>G</kbd></button>
               </div>
             </details>
             <details class="menu-dropdown">
@@ -225,6 +230,7 @@
           <button data-canvas-action="zoom-out"><i data-lucide="zoom-out"></i><span>Diminuir zoom</span></button>
           <button data-canvas-action="reset-view"><i data-lucide="maximize"></i><span>Centralizar 100%</span></button>
           <button data-canvas-action="fit-view"><i data-lucide="scan-search"></i><span>Ajustar a tela</span></button>
+          <button data-canvas-action="toggle-grid"><i data-lucide="grid-2x2"></i><span>Mostrar grade</span></button>
         </div>
       </section>
     </main>

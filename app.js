@@ -30,6 +30,8 @@ const ui = {
   resetView: document.querySelector("#resetView"),
   fitView: document.querySelector("#fitView"),
   snapToGrid: document.querySelector("#snapToGrid"),
+  showGrid: document.querySelector("#showGrid"),
+  toggleGrid: document.querySelector("#toggleGrid"),
   gridStep: document.querySelector("#gridStep"),
   addPiece: document.querySelector("#addPiece"),
   imageInput: document.querySelector("#imageInput"),
@@ -413,6 +415,7 @@ function drawRulers(width) {
 function drawFabric() {
   const width = Number(ui.fabricWidth.value);
   const isTubular = ui.fabricType.value === "tubular";
+  const gridStep = Math.max(0.5, Number(ui.gridStep.value) || 1);
   const [x, y] = worldToScreen([0, 0]);
   const w = width * baseScale * view.zoom;
   const h = fabricHeight * baseScale * view.zoom;
@@ -423,21 +426,23 @@ function drawFabric() {
   ctx.fillRect(x, y, w, h);
   ctx.strokeRect(x, y, w, h);
 
-  ctx.strokeStyle = "#d8e0db";
-  ctx.lineWidth = 1;
-  for (let cm = 10; cm < width; cm += 10) {
-    const [gx] = worldToScreen([cm, 0]);
-    ctx.beginPath();
-    ctx.moveTo(gx, y);
-    ctx.lineTo(gx, y + h);
-    ctx.stroke();
-  }
-  for (let cm = 10; cm < fabricHeight; cm += 10) {
-    const [, gy] = worldToScreen([0, cm]);
-    ctx.beginPath();
-    ctx.moveTo(x, gy);
-    ctx.lineTo(x + w, gy);
-    ctx.stroke();
+  if (ui.showGrid.checked) {
+    ctx.strokeStyle = "#d8e0db";
+    ctx.lineWidth = 1;
+    for (let cm = gridStep; cm < width; cm += gridStep) {
+      const [gx] = worldToScreen([cm, 0]);
+      ctx.beginPath();
+      ctx.moveTo(gx, y);
+      ctx.lineTo(gx, y + h);
+      ctx.stroke();
+    }
+    for (let cm = gridStep; cm < fabricHeight; cm += gridStep) {
+      const [, gy] = worldToScreen([0, cm]);
+      ctx.beginPath();
+      ctx.moveTo(x, gy);
+      ctx.lineTo(x + w, gy);
+      ctx.stroke();
+    }
   }
 
   drawRulers(width);
@@ -1316,6 +1321,7 @@ function projectSnapshot() {
     },
     editor: {
       snapToGrid: ui.snapToGrid.checked,
+      showGrid: ui.showGrid.checked,
       gridStep: Math.max(0.1, Number(ui.gridStep.value) || 1),
     },
     counters: {
@@ -1364,6 +1370,7 @@ function restoreSnapshot(snapshot) {
   ui.fabricWidth.value = data.fabric?.width || 150;
   ui.spacing.value = data.fabric?.spacing || 2;
   ui.snapToGrid.checked = Boolean(data.editor?.snapToGrid);
+  ui.showGrid.checked = data.editor?.showGrid ?? true;
   ui.gridStep.value = data.editor?.gridStep || 1;
 
   pieces.splice(
@@ -1442,6 +1449,7 @@ function openProject(file) {
       ui.fabricWidth.value = data.fabric?.width || 150;
       ui.spacing.value = data.fabric?.spacing || 2;
       ui.snapToGrid.checked = Boolean(data.editor?.snapToGrid);
+      ui.showGrid.checked = data.editor?.showGrid ?? true;
       ui.gridStep.value = data.editor?.gridStep || 1;
 
       pieces.splice(
@@ -2348,6 +2356,12 @@ ui.resetView.addEventListener("click", () => {
   draw();
 });
 ui.fitView.addEventListener("click", fitViewToPieces);
+ui.showGrid.addEventListener("change", draw);
+ui.toggleGrid.addEventListener("click", () => {
+  ui.showGrid.checked = !ui.showGrid.checked;
+  updateImportStatus(ui.showGrid.checked ? "Grade visivel." : "Grade oculta.");
+  draw();
+});
 
 ui.rotateLeft.addEventListener("click", () => {
   const piece = selectedPiece();
@@ -2500,6 +2514,7 @@ ui.canvasContextMenu.addEventListener("click", (event) => {
     "zoom-out": () => ui.zoomOut.click(),
     "reset-view": () => ui.resetView.click(),
     "fit-view": () => ui.fitView.click(),
+    "toggle-grid": () => ui.toggleGrid.click(),
   };
   actions[button.dataset.canvasAction]?.();
   closeCanvasContextMenu();
@@ -2533,6 +2548,7 @@ document.addEventListener("keydown", (event) => {
     h: () => ui.modePan.click(),
     r: () => ui.modeMeasure.click(),
     f: () => ui.fitView.click(),
+    g: () => ui.toggleGrid.click(),
     n: () => ui.addPiece.click(),
     "+": () => ui.zoomIn.click(),
     "=": () => ui.zoomIn.click(),
