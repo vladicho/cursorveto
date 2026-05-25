@@ -1363,6 +1363,7 @@ async function autoNest() {
 
   try {
     recordHistory();
+    const beforeStats = markerStats();
     const spacing = Math.max(0, Number(ui.spacing.value) || 0);
     const fabricWidth = Number(ui.fabricWidth.value);
     const timerSeconds = Math.max(1, Math.min(60, Number(ui.nestingTimer.value) || 3));
@@ -1488,9 +1489,13 @@ async function autoNest() {
     draw();
     const stats = markerStats();
     const elapsedSeconds = Math.max(0.01, (performance.now() - startTime) / 1000);
+    const lengthDelta = beforeStats.usedLength - stats.usedLength;
+    const efficiencyDelta = stats.efficiency - beforeStats.efficiency;
+    const lengthText = lengthDelta > 0.05 ? `, reduziu ${lengthDelta.toFixed(1)} cm` : lengthDelta < -0.05 ? `, aumentou ${Math.abs(lengthDelta).toFixed(1)} cm` : ", comprimento igual";
+    const efficiencyText = Math.abs(efficiencyDelta) > 0.05 ? `, ${efficiencyDelta > 0 ? "+" : ""}${efficiencyDelta.toFixed(1)}% aproveitamento` : "";
     const missingText = best?.missingCount ? `, ${best.missingCount} peca(s) nao encaixada(s)` : "";
     updateImportStatus(
-      `Encaixe automatico: ${attempts} tentativa(s) em ${elapsedSeconds.toFixed(1)}s, novo comprimento ${stats.usedLength.toFixed(1)} cm, aproveitamento ${stats.efficiency.toFixed(1)}%${missingText}.`,
+      `Encaixe automatico: ${attempts} tentativa(s) em ${elapsedSeconds.toFixed(1)}s, comprimento ${beforeStats.usedLength.toFixed(1)} -> ${stats.usedLength.toFixed(1)} cm${lengthText}, aproveitamento ${stats.efficiency.toFixed(1)}%${efficiencyText}${missingText}.`,
     );
   } finally {
     ui.autoNest.disabled = false;
