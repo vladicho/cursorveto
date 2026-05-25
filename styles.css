@@ -632,6 +632,18 @@ button.primary:hover:not(:disabled) {
   table-layout: fixed;
 }
 
+.marker-col-sm {
+  width: 8%;
+}
+
+.marker-col-md {
+  width: 11%;
+}
+
+.marker-col-lg {
+  width: 17%;
+}
+
 .marker-header th,
 .marker-header td {
   border-right: 1px solid var(--line);
