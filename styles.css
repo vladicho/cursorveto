@@ -619,6 +619,18 @@ button.primary:hover:not(:disabled) {
   flex: 1 1 260px;
 }
 
+.status-action {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.status-action svg,
+.status-action [data-lucide] {
+  width: 14px;
+  height: 14px;
+}
+
 .marker-header {
   border-bottom: 1px solid var(--line);
   background: #fbfcf9;

@@ -18,6 +18,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Menus superiores fecham ao abrir outro menu, ao clicar fora ou com Esc
 - Barra de status com modo, peca selecionada, tecido, zoom e coordenadas do cursor
 - Dados de risco ficam concentrados no cabecario, sem resumo duplicado no topo
+- Cabecario do risco inicia oculto e pode ser mostrado pela barra de status
 - Mensagens de importacao, digitalizacao e acoes visiveis na barra de status
 - Atalhos de teclado para modos, zoom, nova peca e salvar projeto
 - Atalhos Ctrl+D para duplicar e Delete/Backspace para apagar ponto ou peca

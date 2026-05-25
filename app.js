@@ -84,6 +84,8 @@ const ui = {
   headerModels: document.querySelector("#headerModels"),
   headerFile: document.querySelector("#headerFile"),
   headerStatus: document.querySelector("#headerStatus"),
+  markerHeader: document.querySelector("#markerHeader"),
+  toggleMarkerHeader: document.querySelector("#toggleMarkerHeader"),
   statusMode: document.querySelector("#statusMode"),
   statusPiece: document.querySelector("#statusPiece"),
   statusFabric: document.querySelector("#statusFabric"),
@@ -3599,6 +3601,11 @@ ui.spacing.addEventListener("input", () => {
 ui.nestingTimer.addEventListener("input", () => {
   recordHistory();
   draw();
+});
+ui.toggleMarkerHeader.addEventListener("click", () => {
+  ui.markerHeader.hidden = !ui.markerHeader.hidden;
+  ui.toggleMarkerHeader.classList.toggle("active", !ui.markerHeader.hidden);
+  updateImportStatus(ui.markerHeader.hidden ? "Cabecalho oculto." : "Cabecalho visivel.");
 });
 ui.autoNest.addEventListener("click", autoNest);
 ui.cancelNest.addEventListener("click", cancelNesting);
