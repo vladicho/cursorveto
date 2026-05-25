@@ -3784,4 +3784,5 @@ setupMenuBehavior();
 window.addEventListener("load", refreshIcons);
 window.addEventListener("load", connectLocalScanner);
 
+setMarkerHeaderVisible(!ui.markerHeader.hidden);
 draw();
