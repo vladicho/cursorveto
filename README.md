@@ -21,6 +21,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Cabecario do risco inicia oculto e pode ser mostrado pela barra de status
 - Projeto salva se o cabecario estava visivel ou oculto
 - Projetos antigos sem preferencia de cabecario abrem com ele oculto por padrao
+- Desfazer/refazer tambem restaura se o cabecario estava visivel ou oculto
 - Atalho Ctrl+H mostra ou oculta o cabecario do risco
 - Botao do cabecario indica se a acao atual e mostrar ou ocultar
 - Estado inicial do botao do cabecario acompanha se ele esta visivel ou oculto
