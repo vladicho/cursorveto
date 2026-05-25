@@ -1182,6 +1182,11 @@ function updateMarkerHeader(stats) {
   ui.headerStatus.classList.toggle("warn", header.Status !== "OK");
 }
 
+function setMarkerHeaderVisible(visible) {
+  ui.markerHeader.hidden = !visible;
+  ui.toggleMarkerHeader.classList.toggle("active", visible);
+}
+
 function updateMetrics(collisions) {
   const stats = markerStats();
 
@@ -2074,6 +2079,7 @@ function projectSnapshot() {
       snapToGrid: ui.snapToGrid.checked,
       showGrid: ui.showGrid.checked,
       gridStep: Math.max(0.1, Number(ui.gridStep.value) || 1),
+      showMarkerHeader: !ui.markerHeader.hidden,
     },
     counters: {
       newPieceCount,
@@ -2124,6 +2130,7 @@ function restoreSnapshot(snapshot) {
   ui.snapToGrid.checked = Boolean(data.editor?.snapToGrid);
   ui.showGrid.checked = data.editor?.showGrid ?? true;
   ui.gridStep.value = data.editor?.gridStep || 1;
+  setMarkerHeaderVisible(Boolean(data.editor?.showMarkerHeader));
 
   pieces.splice(
     0,
@@ -2204,6 +2211,7 @@ function openProject(file) {
       ui.snapToGrid.checked = Boolean(data.editor?.snapToGrid);
       ui.showGrid.checked = data.editor?.showGrid ?? true;
       ui.gridStep.value = data.editor?.gridStep || 1;
+      setMarkerHeaderVisible(Boolean(data.editor?.showMarkerHeader));
 
       pieces.splice(
         0,
@@ -3603,8 +3611,7 @@ ui.nestingTimer.addEventListener("input", () => {
   draw();
 });
 ui.toggleMarkerHeader.addEventListener("click", () => {
-  ui.markerHeader.hidden = !ui.markerHeader.hidden;
-  ui.toggleMarkerHeader.classList.toggle("active", !ui.markerHeader.hidden);
+  setMarkerHeaderVisible(ui.markerHeader.hidden);
   updateImportStatus(ui.markerHeader.hidden ? "Cabecalho oculto." : "Cabecalho visivel.");
 });
 ui.autoNest.addEventListener("click", autoNest);
