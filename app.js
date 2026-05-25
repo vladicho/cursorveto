@@ -543,9 +543,46 @@ function applyPlacement(piece, placement, placed) {
   placed.push({ piece, points: placement.points, box: placement.box });
 }
 
+function candidateLeftEdges(piece, others, spacing) {
+  const currentBox = bounds(transformedPoints(piece));
+  const values = new Set([Number(spacing.toFixed(2))]);
+  others.forEach(({ box }) => {
+    if (box.maxX + spacing < currentBox.minX) values.add(Number((box.maxX + spacing).toFixed(2)));
+  });
+  return [...values].filter((value) => value < currentBox.minX - 0.01).sort((a, b) => a - b);
+}
+
+function compactPieceLeft(piece, allPieces, fabricWidth, spacing) {
+  const others = allPieces.filter((item) => item.id !== piece.id).map(placedPieceInfo);
+  for (const leftEdge of candidateLeftEdges(piece, others, spacing)) {
+    const currentBox = bounds(transformedPoints(piece));
+    const testPiece = { ...piece, x: piece.x + leftEdge - currentBox.minX };
+    const points = transformedPoints(testPiece);
+    const box = bounds(points);
+    if (!placementFits(points, box, others, fabricWidth, spacing)) continue;
+    piece.x = testPiece.x;
+    return true;
+  }
+  return false;
+}
+
+function compactNestingPieces(candidatePieces, lockedPieces, fabricWidth, spacing) {
+  const lockedIds = new Set(lockedPieces.map((piece) => piece.id));
+  const movablePieces = candidatePieces
+    .filter((piece) => !lockedIds.has(piece.id))
+    .sort((a, b) => bounds(transformedPoints(a)).minX - bounds(transformedPoints(b)).minX);
+  for (let round = 0; round < 3; round += 1) {
+    let moved = false;
+    movablePieces.forEach((piece) => {
+      moved = compactPieceLeft(piece, candidatePieces, fabricWidth, spacing) || moved;
+    });
+    if (!moved) break;
+  }
+}
+
 function runNestingPass(lockedPieces, foldPieces, regularPieces, fabricWidth, spacing) {
   const placed = lockedPieces.map(placedPieceInfo);
-  const placements = new Map();
+  const placedIds = new Set();
   let foldStartX = spacing;
 
   foldPieces.forEach((piece) => {
@@ -558,7 +595,7 @@ function runNestingPass(lockedPieces, foldPieces, regularPieces, fabricWidth, sp
 
     if (!placement) return;
     applyPlacement(piece, placement, placed);
-    placements.set(piece.id, { x: piece.x, y: piece.y, rotation: piece.rotation });
+    placedIds.add(piece.id);
     foldStartX = Math.max(foldStartX, placement.box.maxX + spacing);
   });
 
@@ -566,10 +603,20 @@ function runNestingPass(lockedPieces, foldPieces, regularPieces, fabricWidth, sp
     const placement = findBestPlacement(piece, placed, fabricWidth, spacing, { startX: foldPieces.length ? foldStartX : spacing });
     if (!placement) return;
     applyPlacement(piece, placement, placed);
-    placements.set(piece.id, { x: piece.x, y: piece.y, rotation: piece.rotation });
+    placedIds.add(piece.id);
   });
 
-  const candidatePieces = [...lockedPieces, ...foldPieces, ...regularPieces];
+  const candidatePieces = [
+    ...lockedPieces,
+    ...foldPieces.filter((piece) => placedIds.has(piece.id)),
+    ...regularPieces.filter((piece) => placedIds.has(piece.id)),
+  ];
+  compactNestingPieces(candidatePieces, lockedPieces, fabricWidth, spacing);
+  const placements = new Map(
+    candidatePieces
+      .filter((piece) => placedIds.has(piece.id))
+      .map((piece) => [piece.id, { x: piece.x, y: piece.y, rotation: piece.rotation }]),
+  );
   const stats = markerStats(candidatePieces);
   return {
     placements,
