@@ -486,15 +486,17 @@ function placementFits(points, box, placed, fabricWidth, spacing) {
   return placed.every((item) => !boxesTooClose(box, item.box, spacing) || !polygonsOverlap(points, item.points));
 }
 
-function candidateCoordinates(placed, spacing, startX = spacing, fixedY = null) {
+function candidateCoordinates(placed, spacing, startX = spacing, fixedY = null, itemSize = { width: 0, height: 0 }) {
   const xValues = new Set([Number(startX.toFixed(2)), Number(spacing.toFixed(2))]);
   const yValues = new Set([Number(spacing.toFixed(2))]);
 
   placed.forEach(({ box }) => {
     xValues.add(Number((box.maxX + spacing).toFixed(2)));
     xValues.add(Number(Math.max(spacing, box.minX).toFixed(2)));
+    xValues.add(Number((box.minX - itemSize.width - spacing).toFixed(2)));
     yValues.add(Number((box.maxY + spacing).toFixed(2)));
     yValues.add(Number(Math.max(spacing, box.minY).toFixed(2)));
+    yValues.add(Number((box.minY - itemSize.height - spacing).toFixed(2)));
   });
 
   return {
@@ -511,11 +513,11 @@ function grainSafeRotations(piece) {
 function findBestPlacement(piece, placed, fabricWidth, spacing, options = {}) {
   const startX = options.startX ?? spacing;
   const fixedY = options.fixedY ?? null;
-  const { xValues, yValues } = candidateCoordinates(placed, spacing, startX, fixedY);
   let best = null;
 
   grainSafeRotations(piece).forEach((rotation) => {
     const info = placementInfo(piece, rotation);
+    const { xValues, yValues } = candidateCoordinates(placed, spacing, startX, fixedY, info);
     xValues.forEach((candidateX) => {
       yValues.forEach((candidateY) => {
         const x = candidateX - info.box.minX;
