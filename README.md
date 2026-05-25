@@ -66,6 +66,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Botao de encaixe mostra estado de calculo e evita clique duplo durante o processamento
 - Canvas mostra a melhor previa do encaixe e permite interromper o calculo
 - Barra de progresso mostra o tempo restante do encaixe automatico
+- Barra do encaixe fica oculta quando nao ha calculo em andamento
 - Durante o encaixe a tela evita textos de tentativa e deixa a barra/preview indicar atividade
 - Tecla Esc interrompe o encaixe automatico quando ele esta calculando
 - Interface diferencia botao desativado de botao calculando

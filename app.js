@@ -1426,6 +1426,9 @@ function updateNestingProgressBar(startTime, deadline) {
   const duration = Math.max(1, deadline - startTime);
   const progress = Math.min(100, Math.max(0, ((performance.now() - startTime) / duration) * 100));
   ui.nestingProgressBar.value = progress;
+  const progressText = `${progress.toFixed(0)}%`;
+  ui.nestingProgressBar.title = `Encaixe ${progressText}`;
+  ui.nestingProgressBar.setAttribute("aria-valuetext", progressText);
 }
 
 function cancelNesting() {
@@ -1442,7 +1445,10 @@ async function autoNest() {
   nestingPreview = null;
   ui.autoNest.disabled = true;
   ui.cancelNest.disabled = false;
+  ui.nestingProgressBar.hidden = false;
   ui.nestingProgressBar.value = 0;
+  ui.nestingProgressBar.title = "Encaixe 0%";
+  ui.nestingProgressBar.setAttribute("aria-valuetext", "0%");
   ui.autoNest.setAttribute("aria-busy", "true");
   const autoNestLabel = ui.autoNest.querySelector("span");
   const originalLabel = autoNestLabel?.textContent || "Encaixe automatico";
@@ -1595,6 +1601,8 @@ async function autoNest() {
     updateImportStatus(finalMessage);
     updateNestingProgress(finalMessage);
     ui.nestingProgressBar.value = nestingCancelRequested ? ui.nestingProgressBar.value : 100;
+    ui.nestingProgressBar.title = nestingCancelRequested ? ui.nestingProgressBar.title : "Encaixe 100%";
+    ui.nestingProgressBar.setAttribute("aria-valuetext", nestingCancelRequested ? ui.nestingProgressBar.getAttribute("aria-valuetext") || "" : "100%");
   } finally {
     ui.autoNest.disabled = false;
     ui.cancelNest.disabled = true;
@@ -1604,7 +1612,12 @@ async function autoNest() {
     nestingCancelRequested = false;
     nestingPreview = null;
     setTimeout(() => {
-      if (!nestingRunning) ui.nestingProgressBar.value = 0;
+      if (!nestingRunning) {
+        ui.nestingProgressBar.value = 0;
+        ui.nestingProgressBar.hidden = true;
+        ui.nestingProgressBar.title = "";
+        ui.nestingProgressBar.removeAttribute("aria-valuetext");
+      }
     }, 900);
     draw();
   }
