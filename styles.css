@@ -409,6 +409,16 @@ button.primary:hover:not(:disabled) {
   background: var(--accent-dark);
 }
 
+button.danger-action:not(:disabled) {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+button.danger-action:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
 .selected-name {
   min-height: 24px;
   color: var(--ink);

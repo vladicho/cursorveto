@@ -1437,10 +1437,17 @@ function setNestingInputsLocked(locked) {
   });
 }
 
+function setCancelNestActive(active) {
+  ui.cancelNest.classList.toggle("danger-action", active);
+  if (active) ui.cancelNest.setAttribute("aria-busy", "true");
+  else ui.cancelNest.removeAttribute("aria-busy");
+}
+
 function cancelNesting() {
   if (!nestingRunning) return;
   nestingCancelRequested = true;
   ui.cancelNest.disabled = true;
+  setCancelNestActive(false);
   ui.statusMessage.textContent = "Interrompendo encaixe...";
 }
 
@@ -1452,6 +1459,7 @@ async function autoNest() {
   ui.autoNest.disabled = true;
   ui.cancelNest.disabled = false;
   setNestingInputsLocked(true);
+  setCancelNestActive(true);
   ui.nestingProgressBar.hidden = false;
   ui.nestingProgressBar.value = 0;
   ui.nestingProgressBar.title = "Encaixe 0%";
@@ -1614,6 +1622,7 @@ async function autoNest() {
     ui.autoNest.disabled = false;
     ui.cancelNest.disabled = true;
     setNestingInputsLocked(false);
+    setCancelNestActive(false);
     ui.autoNest.removeAttribute("aria-busy");
     if (autoNestLabel) autoNestLabel.textContent = originalLabel;
     nestingRunning = false;
