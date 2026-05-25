@@ -3676,6 +3676,11 @@ ui.canvasContextMenu.addEventListener("click", (event) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (nestingRunning) {
+      event.preventDefault();
+      cancelNesting();
+      return;
+    }
     closeMenus();
     closePieceContextMenu();
     closeCanvasContextMenu();
