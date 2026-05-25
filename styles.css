@@ -378,7 +378,11 @@ button kbd {
   cursor: not-allowed;
 }
 
-button:disabled,
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 button[aria-busy="true"] {
   opacity: 0.55;
   cursor: progress;

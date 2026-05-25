@@ -1404,7 +1404,10 @@ function describeNestingOrder(order, label) {
 }
 
 function updateNestingProgress(message) {
-  const trail = nestingAttemptTrail.slice(-7).reverse();
+  const trail = nestingAttemptTrail
+    .filter((item) => item !== message)
+    .slice(-7)
+    .reverse();
   ui.nestingProgress.textContent = [message, ...trail].join("\n");
   ui.statusMessage.textContent = message;
 }

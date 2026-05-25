@@ -57,6 +57,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Painel mostra as possibilidades de encaixe testadas, a melhor previa no canvas e permite interromper o calculo
 - Barra de progresso mostra o tempo restante do encaixe automatico
 - Tecla Esc interrompe o encaixe automatico quando ele esta calculando
+- Painel de progresso evita repeticao da tentativa atual e diferencia botao desativado de botao calculando
 - Encaixe testa estrategias por area, largura, altura, perimetro e proporcao antes das tentativas mistas
 - Encaixe faz compactacao final empurrando pecas para a esquerda quando ha espaco livre
 - Compactacao pode ajustar pecas para cima/baixo mesmo sem mover no comprimento, mantendo pecas de dobra no tecido tubular presas a dobra
