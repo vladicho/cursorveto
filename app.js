@@ -3726,6 +3726,12 @@ document.addEventListener("keydown", (event) => {
     closeMenus();
     return;
   }
+  if ((event.ctrlKey || event.metaKey) && key === "h") {
+    event.preventDefault();
+    ui.toggleMarkerHeader.click();
+    closeMenus();
+    return;
+  }
   if (isTyping) return;
 
   const isUndo = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey;
