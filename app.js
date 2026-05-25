@@ -122,6 +122,7 @@ let cameraStream = null;
 let scannerSocket = null;
 let scannerPollTimer = null;
 let latestScannerFrameId = null;
+let nestingRunning = false;
 
 const pieces = [
   {
@@ -1263,69 +1264,100 @@ function draw() {
   updateModeButtons();
 }
 
-function autoNest() {
-  recordHistory();
-  const spacing = Math.max(0, Number(ui.spacing.value) || 0);
-  const fabricWidth = Number(ui.fabricWidth.value);
-  const timerSeconds = Math.max(1, Math.min(60, Number(ui.nestingTimer.value) || 3));
-  const startTime = performance.now();
-  const deadline = startTime + timerSeconds * 1000;
-  const isTubular = ui.fabricType.value === "tubular";
-  const ordered = [...pieces].sort((a, b) => polygonArea(transformedPoints(b)) - polygonArea(transformedPoints(a)));
-  const lockedPieces = pieces.filter((piece) => piece.locked);
-  const unlocked = ordered.filter((piece) => !piece.locked);
-  const foldPieces = isTubular ? unlocked.filter((piece) => piece.mirrored) : [];
-  const regularPieces = unlocked.filter((piece) => !(isTubular && piece.mirrored));
-  const regularOrders = [
-    regularPieces,
-    [...regularPieces].sort((a, b) => placementInfo(b).height - placementInfo(a).height),
-    [...regularPieces].sort((a, b) => placementInfo(b).width - placementInfo(a).width),
-    [...regularPieces].sort((a, b) => polygonPerimeter(transformedPoints(b)) - polygonPerimeter(transformedPoints(a))),
-    [...regularPieces].reverse(),
-  ];
-  let best = null;
-  let attempts = 0;
-  const clonePiece = (piece) => ({ ...piece, points: piece.points.map((point) => [...point]) });
-  const runOrder = (order) => {
-    const clonedLocked = lockedPieces.map(clonePiece);
-    const clonedFold = foldPieces.map(clonePiece);
-    const clonedRegular = order.map(clonePiece);
-    const result = runNestingPass(clonedLocked, clonedFold, clonedRegular, fabricWidth, spacing);
-    attempts += 1;
-    if (!best || result.score < best.score) best = result;
-  };
-  const shuffledOrder = (list) => {
-    const shuffled = [...list];
-    for (let index = shuffled.length - 1; index > 0; index -= 1) {
-      const swapIndex = Math.floor(Math.random() * (index + 1));
-      [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+function waitForNextFrame() {
+  return new Promise((resolve) => requestAnimationFrame(resolve));
+}
+
+async function autoNest() {
+  if (nestingRunning) return;
+  nestingRunning = true;
+  ui.autoNest.disabled = true;
+  ui.autoNest.setAttribute("aria-busy", "true");
+  const autoNestLabel = ui.autoNest.querySelector("span");
+  const originalLabel = autoNestLabel?.textContent || "Encaixe automatico";
+  if (autoNestLabel) autoNestLabel.textContent = "Calculando";
+
+  try {
+    recordHistory();
+    const spacing = Math.max(0, Number(ui.spacing.value) || 0);
+    const fabricWidth = Number(ui.fabricWidth.value);
+    const timerSeconds = Math.max(1, Math.min(60, Number(ui.nestingTimer.value) || 3));
+    const startTime = performance.now();
+    const deadline = startTime + timerSeconds * 1000;
+    const isTubular = ui.fabricType.value === "tubular";
+    const ordered = [...pieces].sort((a, b) => polygonArea(transformedPoints(b)) - polygonArea(transformedPoints(a)));
+    const lockedPieces = pieces.filter((piece) => piece.locked);
+    const unlocked = ordered.filter((piece) => !piece.locked);
+    const foldPieces = isTubular ? unlocked.filter((piece) => piece.mirrored) : [];
+    const regularPieces = unlocked.filter((piece) => !(isTubular && piece.mirrored));
+    const regularOrders = [
+      regularPieces,
+      [...regularPieces].sort((a, b) => placementInfo(b).height - placementInfo(a).height),
+      [...regularPieces].sort((a, b) => placementInfo(b).width - placementInfo(a).width),
+      [...regularPieces].sort((a, b) => polygonPerimeter(transformedPoints(b)) - polygonPerimeter(transformedPoints(a))),
+      [...regularPieces].reverse(),
+    ];
+    let best = null;
+    let attempts = 0;
+    let lastYield = startTime;
+    const clonePiece = (piece) => ({ ...piece, points: piece.points.map((point) => [...point]) });
+    const runOrder = (order) => {
+      const clonedLocked = lockedPieces.map(clonePiece);
+      const clonedFold = foldPieces.map(clonePiece);
+      const clonedRegular = order.map(clonePiece);
+      const result = runNestingPass(clonedLocked, clonedFold, clonedRegular, fabricWidth, spacing);
+      attempts += 1;
+      if (!best || result.score < best.score) best = result;
+    };
+    const shuffledOrder = (list) => {
+      const shuffled = [...list];
+      for (let index = shuffled.length - 1; index > 0; index -= 1) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+      }
+      return shuffled;
+    };
+    const yieldIfNeeded = async () => {
+      const now = performance.now();
+      if (now - lastYield < 120) return;
+      const elapsedSeconds = Math.max(0.01, (now - startTime) / 1000);
+      updateImportStatus(`Calculando encaixe: ${attempts} tentativa(s) em ${elapsedSeconds.toFixed(1)}s.`);
+      lastYield = now;
+      await waitForNextFrame();
+    };
+
+    for (const order of regularOrders) {
+      if (performance.now() > deadline) break;
+      runOrder(order);
+      await yieldIfNeeded();
     }
-    return shuffled;
-  };
+    while (regularPieces.length > 1 && performance.now() < deadline) {
+      runOrder(shuffledOrder(regularPieces));
+      await yieldIfNeeded();
+    }
 
-  regularOrders.forEach((order) => {
-    if (performance.now() <= deadline) runOrder(order);
-  });
-  while (regularPieces.length > 1 && performance.now() < deadline) {
-    runOrder(shuffledOrder(regularPieces));
+    if (best) {
+      pieces.forEach((piece) => {
+        const placement = best.placements.get(piece.id);
+        if (!placement) return;
+        piece.rotation = placement.rotation;
+        piece.x = placement.x;
+        piece.y = placement.y;
+      });
+    }
+
+    draw();
+    const stats = markerStats();
+    const elapsedSeconds = Math.max(0.01, (performance.now() - startTime) / 1000);
+    updateImportStatus(
+      `Encaixe automatico: ${attempts} tentativa(s) em ${elapsedSeconds.toFixed(1)}s, novo comprimento ${stats.usedLength.toFixed(1)} cm, aproveitamento ${stats.efficiency.toFixed(1)}%.`,
+    );
+  } finally {
+    ui.autoNest.disabled = false;
+    ui.autoNest.removeAttribute("aria-busy");
+    if (autoNestLabel) autoNestLabel.textContent = originalLabel;
+    nestingRunning = false;
   }
-
-  if (best) {
-    pieces.forEach((piece) => {
-      const placement = best.placements.get(piece.id);
-      if (!placement) return;
-      piece.rotation = placement.rotation;
-      piece.x = placement.x;
-      piece.y = placement.y;
-    });
-  }
-
-  draw();
-  const stats = markerStats();
-  const elapsedSeconds = Math.max(0.01, (performance.now() - startTime) / 1000);
-  updateImportStatus(
-    `Encaixe automatico: ${attempts} tentativa(s) em ${elapsedSeconds.toFixed(1)}s, novo comprimento ${stats.usedLength.toFixed(1)} cm, aproveitamento ${stats.efficiency.toFixed(1)}%.`,
-  );
 }
 
 function exportSvgMarkup() {

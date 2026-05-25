@@ -53,6 +53,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Espelhamento e rotacao de pecas
 - Encaixe automatico simples
 - Tempo configuravel do encaixe para testar mais combinacoes antes de escolher o melhor resultado
+- Botao de encaixe mostra estado de calculo e evita clique duplo durante o processamento
 - Encaixe usa largura fixa do tecido e aumenta o comprimento do risco conforme necessario
 - Encaixe tenta reaproveitar vazios entre pecas para aumentar o aproveitamento do tecido
 - Margem entre pecas inicia em 0 cm por padrao

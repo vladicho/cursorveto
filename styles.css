@@ -378,7 +378,13 @@ button kbd {
   cursor: not-allowed;
 }
 
-button:hover {
+button:disabled,
+button[aria-busy="true"] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+button:hover:not(:disabled) {
   border-color: var(--accent);
 }
 
@@ -395,7 +401,7 @@ button.primary {
   color: white;
 }
 
-button.primary:hover {
+button.primary:hover:not(:disabled) {
   background: var(--accent-dark);
 }
 
