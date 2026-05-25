@@ -83,6 +83,7 @@ const ui = {
   headerGrade: document.querySelector("#headerGrade"),
   headerModels: document.querySelector("#headerModels"),
   headerFile: document.querySelector("#headerFile"),
+  headerStatus: document.querySelector("#headerStatus"),
   statusMode: document.querySelector("#statusMode"),
   statusPiece: document.querySelector("#statusPiece"),
   statusFabric: document.querySelector("#statusFabric"),
@@ -1052,6 +1053,7 @@ function fitHeaderText(values, fallback = "-") {
 function markerHeaderData(stats = markerStats()) {
   const grade = uniqueFilled(pieces.map((piece) => piece.size));
   const models = uniqueFilled(pieces.map((piece) => piece.model || piece.name));
+  const issues = markerIssueInfo();
   return [
     ["Largura", `${Number(ui.fabricWidth.value).toFixed(0)} cm`],
     ["Comprimento", `${stats.usedLength.toFixed(1)} cm`],
@@ -1060,6 +1062,7 @@ function markerHeaderData(stats = markerStats()) {
     ["Grade", fitHeaderText(grade)],
     ["Modelos", fitHeaderText(models)],
     ["Arquivo", safeProjectFilename("moldelab.json")],
+    ["Status", issues.hasIssues ? `Atencao: ${markerIssueMessage(issues)}` : "OK"],
   ];
 }
 
@@ -1072,6 +1075,8 @@ function updateMarkerHeader(stats) {
   ui.headerGrade.textContent = header.Grade;
   ui.headerModels.textContent = header.Modelos;
   ui.headerFile.textContent = header.Arquivo;
+  ui.headerStatus.textContent = header.Status;
+  ui.headerStatus.classList.toggle("warn", header.Status !== "OK");
 }
 
 function updateMetrics(collisions) {

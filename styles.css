@@ -670,6 +670,10 @@ button.primary:hover {
   font-weight: 800;
 }
 
+.marker-header td.warn {
+  color: var(--danger);
+}
+
 .marker-header th:last-child,
 .marker-header td:last-child {
   border-right: 0;
