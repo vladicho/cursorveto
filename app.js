@@ -1611,8 +1611,8 @@ async function autoNest() {
     const stats = markerStats();
     const elapsedSeconds = Math.max(0.01, (performance.now() - startTime) / 1000);
     const missingText = best?.missingCount ? `, ${best.missingCount} peca(s) nao encaixada(s)` : "";
-    const interruptedText = nestingCancelRequested ? " interrompido," : "";
-    const finalMessage = `Encaixe automatico${interruptedText}: ${attempts} tentativa(s) em ${elapsedSeconds.toFixed(1)}s, comprimento ${stats.usedLength.toFixed(1)} cm, aproveitamento ${stats.efficiency.toFixed(1)}%${missingText}.`;
+    const resultLabel = nestingCancelRequested ? "Encaixe interrompido, melhor parcial" : "Encaixe automatico";
+    const finalMessage = `${resultLabel}: ${attempts} tentativa(s) em ${elapsedSeconds.toFixed(1)}s, comprimento ${stats.usedLength.toFixed(1)} cm, aproveitamento ${stats.efficiency.toFixed(1)}%${missingText}.`;
     updateImportStatus(finalMessage);
     updateNestingProgress(finalMessage);
     ui.nestingProgressBar.value = nestingCancelRequested ? ui.nestingProgressBar.value : 100;
