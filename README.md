@@ -74,6 +74,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Exportacoes usam o nome do projeto como nome do arquivo
 - Mensagem confirma o nome do arquivo exportado
 - Exportacao informa aviso quando ainda existe colisao entre pecas
+- Exportacao informa aviso quando existe peca fora da largura do tecido
 - Salvar e abrir projeto `.moldelab.json`
 
 ## Formatos

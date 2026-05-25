@@ -433,6 +433,27 @@ function collisionInfo() {
   return { ids: collisions, pairs };
 }
 
+function markerIssueInfo() {
+  const collisions = collisionInfo();
+  const fabricWidth = Number(ui.fabricWidth.value);
+  const outsideWidth = pieces.filter((piece) => {
+    const box = bounds(transformedPoints(piece));
+    return box.minY < 0 || box.maxY > fabricWidth;
+  });
+  return {
+    collisions,
+    outsideWidth,
+    hasIssues: collisions.pairs > 0 || outsideWidth.length > 0,
+  };
+}
+
+function markerIssueMessage(issues) {
+  const parts = [];
+  if (issues.collisions.pairs) parts.push(`${issues.collisions.pairs} colisao(oes)`);
+  if (issues.outsideWidth.length) parts.push(`${issues.outsideWidth.length} peca(s) fora da largura`);
+  return parts.join(" e ");
+}
+
 function placementInfo(piece, rotation = piece.rotation) {
   const rotatedPiece = { ...piece, x: 0, y: 0, rotation };
   const box = bounds(transformedPoints(rotatedPiece));
@@ -1327,11 +1348,12 @@ function exportSvgMarkup() {
 }
 
 function exportSvg() {
-  const collisions = collisionInfo();
-  if (collisions.pairs) updateImportStatus(`Aviso: exportando SVG com ${collisions.pairs} colisao(oes).`);
+  const issues = markerIssueInfo();
+  const issueText = markerIssueMessage(issues);
+  if (issues.hasIssues) updateImportStatus(`Aviso: exportando SVG com ${issueText}.`);
   const filename = safeProjectFilename("svg");
   downloadFile(exportSvgMarkup(), filename, "image/svg+xml");
-  updateImportStatus(`${collisions.pairs ? "SVG exportado com aviso" : "SVG exportado"}: ${filename}`);
+  updateImportStatus(`${issues.hasIssues ? "SVG exportado com aviso" : "SVG exportado"}: ${filename}`);
 }
 
 function dxfPair(code, value) {
@@ -1423,11 +1445,12 @@ function exportDxfMarkup() {
 }
 
 function exportDxf() {
-  const collisions = collisionInfo();
-  if (collisions.pairs) updateImportStatus(`Aviso: exportando DXF com ${collisions.pairs} colisao(oes).`);
+  const issues = markerIssueInfo();
+  const issueText = markerIssueMessage(issues);
+  if (issues.hasIssues) updateImportStatus(`Aviso: exportando DXF com ${issueText}.`);
   const filename = safeProjectFilename("dxf");
   downloadFile(exportDxfMarkup(), filename, "application/dxf");
-  updateImportStatus(`${collisions.pairs ? "DXF exportado com aviso" : "DXF exportado"}: ${filename}`);
+  updateImportStatus(`${issues.hasIssues ? "DXF exportado com aviso" : "DXF exportado"}: ${filename}`);
 }
 
 function hpglPoint([x, y]) {
@@ -1543,15 +1566,16 @@ function safeProjectFilename(extension) {
 }
 
 function exportPlt() {
-  const collisions = collisionInfo();
-  if (collisions.pairs) updateImportStatus(`Aviso: exportando PLT com ${collisions.pairs} colisao(oes).`);
+  const issues = markerIssueInfo();
+  const issueText = markerIssueMessage(issues);
+  if (issues.hasIssues) updateImportStatus(`Aviso: exportando PLT com ${issueText}.`);
   const filename = safeProjectFilename("plt");
   downloadFile(exportPltMarkup(), filename, "application/vnd.hp-hpgl");
-  updateImportStatus(`${collisions.pairs ? "PLT exportado com aviso" : "PLT exportado para plotter"}: ${filename}`);
+  updateImportStatus(`${issues.hasIssues ? "PLT exportado com aviso" : "PLT exportado para plotter"}: ${filename}`);
 }
 
 function exportMiniMarker() {
-  const collisions = collisionInfo();
+  const issues = markerIssueInfo();
   const fabricWidth = Number(ui.fabricWidth.value);
   const stats = markerStats();
   const length = Math.max(markerLength(), stats.usedLength);
@@ -1709,7 +1733,7 @@ function exportMiniMarker() {
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-    updateImportStatus(`${collisions.pairs ? "Mini risco JPG exportado com aviso" : "Mini risco JPG exportado"}: ${filename}`);
+    updateImportStatus(`${issues.hasIssues ? "Mini risco JPG exportado com aviso" : "Mini risco JPG exportado"}: ${filename}`);
   }, "image/jpeg", 0.92);
 }
 
