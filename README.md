@@ -74,6 +74,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Encaixe avisa quando nao ha pecas desbloqueadas ou pecas criadas para calcular
 - Encaixe avisa quando nenhuma peca coube na largura atual sem alterar o projeto
 - Resultado do encaixe lista quais pecas ficaram fora quando nem todas couberem
+- Comprimento e aproveitamento finais usam apenas o melhor encaixe encontrado
 - Tecla Esc interrompe o encaixe automatico quando ele esta calculando
 - Interface diferencia botao desativado de botao calculando
 - Encaixe testa estrategias por area, largura, altura, perimetro e proporcao antes das tentativas mistas

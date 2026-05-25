@@ -1621,7 +1621,7 @@ async function autoNest() {
     });
 
     draw();
-    const stats = markerStats();
+    const stats = best.stats;
     const elapsedSeconds = Math.max(0.01, (performance.now() - startTime) / 1000);
     const missingPieces = unlocked.filter((piece) => !best.placements.has(piece.id));
     const missingText = missingPieces.length
