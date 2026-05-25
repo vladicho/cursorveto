@@ -56,6 +56,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Botao de encaixe mostra estado de calculo e evita clique duplo durante o processamento
 - Encaixe testa estrategias por area, largura, altura, perimetro e proporcao antes das tentativas mistas
 - Encaixe faz compactacao final empurrando pecas para a esquerda quando ha espaco livre
+- Compactacao pode ajustar pecas para cima/baixo, mantendo pecas de dobra no tecido tubular presas a dobra
 - Encaixe usa largura fixa do tecido e aumenta o comprimento do risco conforme necessario
 - Encaixe tenta reaproveitar vazios entre pecas para aumentar o aproveitamento do tecido
 - Margem entre pecas inicia em 0 cm por padrao

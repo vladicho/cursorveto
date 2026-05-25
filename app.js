@@ -552,29 +552,60 @@ function candidateLeftEdges(piece, others, spacing) {
   return [...values].filter((value) => value < currentBox.minX - 0.01).sort((a, b) => a - b);
 }
 
-function compactPieceLeft(piece, allPieces, fabricWidth, spacing) {
+function candidateTopEdges(piece, others, fabricWidth, spacing) {
+  const currentBox = bounds(transformedPoints(piece));
+  const height = currentBox.maxY - currentBox.minY;
+  const values = new Set([
+    Number(currentBox.minY.toFixed(2)),
+    Number(spacing.toFixed(2)),
+    Number(Math.max(spacing, fabricWidth - height - spacing).toFixed(2)),
+  ]);
+  others.forEach(({ box }) => {
+    values.add(Number(Math.max(spacing, box.maxY + spacing).toFixed(2)));
+    values.add(Number(Math.max(spacing, box.minY).toFixed(2)));
+  });
+  return [...values]
+    .filter((value) => value >= spacing && value + height <= fabricWidth - spacing)
+    .sort((a, b) => Math.abs(a - currentBox.minY) - Math.abs(b - currentBox.minY));
+}
+
+function compactPieceLeft(piece, allPieces, fabricWidth, spacing, allowVertical = true) {
   const others = allPieces.filter((item) => item.id !== piece.id).map(placedPieceInfo);
+  let best = null;
   for (const leftEdge of candidateLeftEdges(piece, others, spacing)) {
-    const currentBox = bounds(transformedPoints(piece));
-    const testPiece = { ...piece, x: piece.x + leftEdge - currentBox.minX };
-    const points = transformedPoints(testPiece);
-    const box = bounds(points);
-    if (!placementFits(points, box, others, fabricWidth, spacing)) continue;
-    piece.x = testPiece.x;
+    const topEdges = allowVertical ? candidateTopEdges(piece, others, fabricWidth, spacing) : [bounds(transformedPoints(piece)).minY];
+    for (const topEdge of topEdges) {
+      const currentBox = bounds(transformedPoints(piece));
+      const testPiece = {
+        ...piece,
+        x: piece.x + leftEdge - currentBox.minX,
+        y: piece.y + topEdge - currentBox.minY,
+      };
+      const points = transformedPoints(testPiece);
+      const box = bounds(points);
+      if (!placementFits(points, box, others, fabricWidth, spacing)) continue;
+      const score = box.maxX * 100000 + box.minX * 100 + Math.abs(topEdge - currentBox.minY);
+      if (!best || score < best.score) best = { x: testPiece.x, y: testPiece.y, score };
+    }
+  }
+  if (best) {
+    piece.x = best.x;
+    piece.y = best.y;
     return true;
   }
   return false;
 }
 
-function compactNestingPieces(candidatePieces, lockedPieces, fabricWidth, spacing) {
+function compactNestingPieces(candidatePieces, lockedPieces, fixedYPieces, fabricWidth, spacing) {
   const lockedIds = new Set(lockedPieces.map((piece) => piece.id));
+  const fixedYIds = new Set(fixedYPieces.map((piece) => piece.id));
   const movablePieces = candidatePieces
     .filter((piece) => !lockedIds.has(piece.id))
     .sort((a, b) => bounds(transformedPoints(a)).minX - bounds(transformedPoints(b)).minX);
   for (let round = 0; round < 3; round += 1) {
     let moved = false;
     movablePieces.forEach((piece) => {
-      moved = compactPieceLeft(piece, candidatePieces, fabricWidth, spacing) || moved;
+      moved = compactPieceLeft(piece, candidatePieces, fabricWidth, spacing, !fixedYIds.has(piece.id)) || moved;
     });
     if (!moved) break;
   }
@@ -611,7 +642,7 @@ function runNestingPass(lockedPieces, foldPieces, regularPieces, fabricWidth, sp
     ...foldPieces.filter((piece) => placedIds.has(piece.id)),
     ...regularPieces.filter((piece) => placedIds.has(piece.id)),
   ];
-  compactNestingPieces(candidatePieces, lockedPieces, fabricWidth, spacing);
+  compactNestingPieces(candidatePieces, lockedPieces, foldPieces, fabricWidth, spacing);
   const placements = new Map(
     candidatePieces
       .filter((piece) => placedIds.has(piece.id))
