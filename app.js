@@ -1620,10 +1620,11 @@ async function autoNest() {
       piece.y = placement.y;
     });
 
-    draw();
     const stats = best.stats;
     const elapsedSeconds = Math.max(0.01, (performance.now() - startTime) / 1000);
     const missingPieces = unlocked.filter((piece) => !best.placements.has(piece.id));
+    if (missingPieces.length) selectedId = missingPieces[0].id;
+    draw();
     const missingText = missingPieces.length
       ? `, ${missingPieces.length} peca(s) fora: ${summarizePieceLabels(missingPieces)}`
       : "";
