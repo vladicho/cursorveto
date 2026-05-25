@@ -578,7 +578,7 @@ button.primary:hover:not(:disabled) {
   border-bottom: 1px solid var(--line);
   background: #fbfcfa;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 16px;
   padding: 10px 18px;
@@ -592,6 +592,7 @@ button.primary:hover:not(:disabled) {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
