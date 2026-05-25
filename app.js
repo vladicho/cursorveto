@@ -460,6 +460,12 @@ function markerIssueMessage(issues) {
   return parts.join(" e ");
 }
 
+function summarizePieceLabels(pieceList, limit = 3) {
+  const labels = pieceList.slice(0, limit).map(pieceDisplayLabel);
+  const extra = pieceList.length - labels.length;
+  return `${labels.join(", ")}${extra > 0 ? ` e mais ${extra}` : ""}`;
+}
+
 function placementInfo(piece, rotation = piece.rotation) {
   const rotatedPiece = { ...piece, x: 0, y: 0, rotation };
   const box = bounds(transformedPoints(rotatedPiece));
@@ -1617,7 +1623,10 @@ async function autoNest() {
     draw();
     const stats = markerStats();
     const elapsedSeconds = Math.max(0.01, (performance.now() - startTime) / 1000);
-    const missingText = best?.missingCount ? `, ${best.missingCount} peca(s) nao encaixada(s)` : "";
+    const missingPieces = unlocked.filter((piece) => !best.placements.has(piece.id));
+    const missingText = missingPieces.length
+      ? `, ${missingPieces.length} peca(s) fora: ${summarizePieceLabels(missingPieces)}`
+      : "";
     const resultLabel = nestingCancelRequested ? "Encaixe interrompido, melhor parcial" : "Encaixe automatico";
     const finalMessage = `${resultLabel}: ${attempts} tentativa(s) em ${elapsedSeconds.toFixed(1)}s, comprimento ${stats.usedLength.toFixed(1)} cm, aproveitamento ${stats.efficiency.toFixed(1)}%${missingText}.`;
     updateImportStatus(finalMessage);
