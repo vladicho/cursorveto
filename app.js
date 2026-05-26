@@ -587,6 +587,25 @@ function applyPlacement(piece, placement, placed) {
   placed.push({ piece, points: placement.points, box: placement.box });
 }
 
+function appendPlacementAtEnd(piece, placed, fabricWidth, spacing) {
+  const rightEdge = Math.max(...placed.map((item) => item.box.maxX), spacing);
+  const candidates = grainSafeRotations(piece)
+    .map((rotation) => {
+      const info = placementInfo(piece, rotation);
+      const availableHeight = fabricWidth - spacing * 2;
+      if (info.height > availableHeight + 0.01) return null;
+      const x = rightEdge + spacing - info.box.minX;
+      const y = spacing - info.box.minY;
+      const testPiece = { ...piece, x, y, rotation };
+      const points = transformedPoints(testPiece);
+      const box = bounds(points);
+      if (!placementFits(points, box, placed, fabricWidth, spacing)) return null;
+      return { x, y, rotation, points, box, score: box.maxX * 1000 + info.height };
+    })
+    .filter(Boolean);
+  return candidates.sort((a, b) => a.score - b.score)[0] || null;
+}
+
 function candidateLeftEdges(piece, others, spacing) {
   const currentBox = bounds(transformedPoints(piece));
   const values = new Set([Number(spacing.toFixed(2)), Number(currentBox.minX.toFixed(2))]);
@@ -682,6 +701,14 @@ function runNestingPass(lockedPieces, foldPieces, regularPieces, fabricWidth, sp
     placedIds.add(piece.id);
   });
 
+  [...foldPieces, ...regularPieces].forEach((piece) => {
+    if (placedIds.has(piece.id)) return;
+    const placement = appendPlacementAtEnd(piece, placed, fabricWidth, spacing);
+    if (!placement) return;
+    applyPlacement(piece, placement, placed);
+    placedIds.add(piece.id);
+  });
+
   const candidatePieces = [
     ...lockedPieces,
     ...foldPieces.filter((piece) => placedIds.has(piece.id)),
@@ -690,7 +717,6 @@ function runNestingPass(lockedPieces, foldPieces, regularPieces, fabricWidth, sp
   compactNestingPieces(candidatePieces, lockedPieces, foldPieces, fabricWidth, spacing);
   const placements = new Map(
     candidatePieces
-      .filter((piece) => placedIds.has(piece.id))
       .map((piece) => [piece.id, { x: piece.x, y: piece.y, rotation: piece.rotation }]),
   );
   const stats = markerStats(candidatePieces);
@@ -1649,7 +1675,7 @@ async function autoNest() {
       await yieldIfNeeded();
     }
 
-    if (!best?.placements.size) {
+    if (!best?.placedCount) {
       updateImportStatus("Nenhuma peca coube na largura atual do tecido.");
       return;
     }
