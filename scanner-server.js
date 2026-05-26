@@ -409,11 +409,21 @@ const server = http.createServer((request, response) => {
     return;
   }
   const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
-  if (!auth.isPublicPath(requestedPath) && !auth.getUserFromRequest(request)) {
-    if (requestedPath === "/index.html") {
-      auth.redirectToLogin(response, "/");
+
+  if (requestedPath === "/index.html" && !auth.getApprovedUser(request)) {
+    auth.redirectToLogin(response, "/");
+    return;
+  }
+
+  if (requestedPath === "/admin.html") {
+    const sessionUser = auth.getSessionUser(request);
+    if (!auth.isAdmin(sessionUser)) {
+      auth.redirectToLogin(response, "/admin.html");
       return;
     }
+  }
+
+  if (!auth.isPublicPath(requestedPath) && !auth.getApprovedUser(request)) {
     response.writeHead(401, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Autenticacao necessaria.");
     return;
@@ -439,7 +449,7 @@ server.on("upgrade", (request, socket) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   if (url.pathname === "/ws/mobile") return acceptWebSocket(request, socket, "mobile");
   if (url.pathname === "/ws/desktop") {
-    if (!auth.getUserFromRequest(request)) {
+    if (!auth.getApprovedUser(request)) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
       return;

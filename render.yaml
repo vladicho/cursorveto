@@ -11,3 +11,7 @@ services:
         value: "22"
       - key: MOLDELAB_JWT_SECRET
         generateValue: true
+      - key: MOLDELAB_BOOTSTRAP_EMAIL
+        sync: false
+      - key: MOLDELAB_BOOTSTRAP_PASSWORD
+        sync: false

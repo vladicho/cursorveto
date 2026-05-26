@@ -3979,12 +3979,14 @@ async function initAuthUi() {
       return;
     }
     const data = await response.json();
-    if (!data.ok || !data.user) {
+    if (!data.ok || !data.user || data.user.status !== "approved") {
       window.location.href = `/login.html?next=${encodeURIComponent(window.location.pathname || "/")}`;
       return;
     }
     userLabel.textContent = data.user.name || data.user.email;
     userMenu.hidden = false;
+    const adminLink = document.querySelector("#adminLink");
+    if (adminLink && data.user.role === "admin") adminLink.hidden = false;
     logoutBtn.addEventListener("click", async () => {
       await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
       window.location.href = "/login.html";

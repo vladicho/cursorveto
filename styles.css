@@ -125,6 +125,61 @@ body {
   gap: 6px;
 }
 
+.admin-shell {
+  width: min(720px, 100%);
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-link {
+  color: var(--accent-dark);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.admin-section-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.admin-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-user-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-user-meta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.admin-user-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 button,
 input,
 select {

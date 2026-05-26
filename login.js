@@ -5,8 +5,9 @@ const tabLogin = document.querySelector("#tabLogin");
 const tabRegister = document.querySelector("#tabRegister");
 const loginForm = document.querySelector("#loginForm");
 const registerForm = document.querySelector("#registerForm");
+const adminPanelLink = document.querySelector("#adminPanelLink");
 
-function showMessage(text, isError = true) {
+function showMessage(text, isError = false) {
   message.hidden = false;
   message.textContent = text;
   message.classList.toggle("auth-error", isError);
@@ -33,6 +34,13 @@ async function submitAuth(path, payload) {
   if (!response.ok || !data.ok) {
     throw new Error(data.error || "Nao foi possivel autenticar.");
   }
+  return data;
+}
+
+function goToApp(data) {
+  if (data.user?.role === "admin" && adminPanelLink) {
+    adminPanelLink.hidden = false;
+  }
   window.location.href = nextPath;
 }
 
@@ -42,10 +50,11 @@ tabRegister.addEventListener("click", () => setTab("register"));
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    await submitAuth("/api/auth/login", {
+    const data = await submitAuth("/api/auth/login", {
       email: document.querySelector("#loginEmail").value,
       password: document.querySelector("#loginPassword").value,
     });
+    goToApp(data);
   } catch (error) {
     showMessage(error.message);
   }
@@ -54,19 +63,31 @@ loginForm.addEventListener("submit", async (event) => {
 registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    await submitAuth("/api/auth/register", {
+    const data = await submitAuth("/api/auth/register", {
       name: document.querySelector("#registerName").value,
       email: document.querySelector("#registerEmail").value,
       password: document.querySelector("#registerPassword").value,
     });
+    setTab("login");
+    showMessage(data.message || "Cadastro enviado. Aguarde aprovacao.", false);
   } catch (error) {
     showMessage(error.message);
   }
 });
 
+if (adminPanelLink) {
+  adminPanelLink.addEventListener("click", (event) => {
+    event.preventDefault();
+    window.location.href = "/admin.html";
+  });
+}
+
 fetch("/api/auth/me", { credentials: "same-origin" })
   .then((response) => (response.ok ? response.json() : null))
   .then((data) => {
-    if (data?.ok) window.location.href = nextPath;
+    if (data?.ok && data.user?.status === "approved") {
+      if (data.user.role === "admin" && adminPanelLink) adminPanelLink.hidden = false;
+      if (nextPath !== "/admin.html") window.location.href = nextPath;
+    }
   })
   .catch(() => {});
