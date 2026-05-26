@@ -5,6 +5,7 @@ const http = require("http");
 const os = require("os");
 const path = require("path");
 const auth = require("./lib/auth");
+const scannerToken = require("./lib/scanner-token");
 
 const root = __dirname;
 const port = Number(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT || 8787);
@@ -45,8 +46,24 @@ function publicOrigin(request) {
   return `http://${localAddress()}:${port}`;
 }
 
+function resolveScannerUserId(request, url) {
+  const approved = auth.getApprovedUser(request);
+  if (approved) return approved.id;
+  const token = scannerToken.extractFromRequest(request, url);
+  return scannerToken.validate(token);
+}
+
 function mobileUrl(request) {
-  return `${publicOrigin(request)}/mobile-scanner.html`;
+  const approved = auth.getApprovedUser(request);
+  const base = `${publicOrigin(request)}/mobile-scanner.html`;
+  if (!approved) return base;
+  const token = scannerToken.create(approved.id);
+  return `${base}?token=${encodeURIComponent(token)}`;
+}
+
+function denyScanner(response) {
+  response.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
+  response.end("Scanner requer login no MoldeLab ou QR valido.");
 }
 
 function qrSvg(text) {
@@ -374,6 +391,10 @@ const server = http.createServer((request, response) => {
   if (auth.handleAuthApi(request, response, url)) return;
 
   if (url.pathname === "/scanner-frame" && request.method === "POST") {
+    if (!resolveScannerUserId(request, url)) {
+      denyScanner(response);
+      return;
+    }
     let body = "";
     request.on("data", (chunk) => {
       body += chunk;
@@ -395,18 +416,31 @@ const server = http.createServer((request, response) => {
     return;
   }
   if (url.pathname === "/scanner-latest-frame.json") {
+    if (!auth.getApprovedUser(request)) {
+      denyScanner(response);
+      return;
+    }
     response.writeHead(200, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
     response.end(JSON.stringify({ ok: true, frame: latestFrame }));
     return;
   }
   if (url.pathname === "/scanner-info.json") {
+    if (!auth.getApprovedUser(request)) {
+      denyScanner(response);
+      return;
+    }
     response.writeHead(200, { "Content-Type": mimeTypes[".json"] });
     response.end(JSON.stringify({ mobileUrl: mobileUrl(request), qrUrl: "/scanner-qr.svg" }));
     return;
   }
   if (url.pathname === "/scanner-qr.svg") {
+    if (!auth.getApprovedUser(request)) {
+      denyScanner(response);
+      return;
+    }
+    const link = mobileUrl(request);
     response.writeHead(200, { "Content-Type": mimeTypes[".svg"], "Cache-Control": "no-store" });
-    response.end(qrSvg(mobileUrl(request)));
+    response.end(qrSvg(link));
     return;
   }
   const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
@@ -416,7 +450,14 @@ const server = http.createServer((request, response) => {
     return;
   }
 
-  if (!auth.isPublicPath(requestedPath) && !auth.getApprovedUser(request)) {
+  if (requestedPath === "/mobile-scanner.html") {
+    if (!resolveScannerUserId(request, url)) {
+      auth.redirectToLogin(response, "/mobile-scanner.html");
+      return;
+    }
+  }
+
+  if (!auth.isPublicPath(requestedPath) && !auth.getApprovedUser(request) && requestedPath !== "/mobile-scanner.html") {
     response.writeHead(401, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Autenticacao necessaria.");
     return;
@@ -441,7 +482,15 @@ const server = http.createServer((request, response) => {
 
 server.on("upgrade", (request, socket) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
-  if (url.pathname === "/ws/mobile") return acceptWebSocket(request, socket, "mobile");
+  if (url.pathname === "/ws/mobile") {
+    const wsUrl = new URL(request.url, `http://${request.headers.host}`);
+    if (!resolveScannerUserId(request, wsUrl)) {
+      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+    return acceptWebSocket(request, socket, "mobile");
+  }
   if (url.pathname === "/ws/desktop") {
     if (!auth.getApprovedUser(request)) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");

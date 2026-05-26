@@ -87,14 +87,26 @@
       const sendFrame = document.querySelector("#sendFrame");
       const toggleLive = document.querySelector("#toggleLive");
       const fallbackPhoto = document.querySelector("#fallbackPhoto");
+      const params = new URLSearchParams(location.search);
+      const scannerToken = params.get("token");
       const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-      const socket = new WebSocket(`${protocol}//${location.host}/ws/mobile`);
+      const socket = scannerToken
+        ? new WebSocket(`${protocol}//${location.host}/ws/mobile?token=${encodeURIComponent(scannerToken)}`)
+        : { readyState: WebSocket.CLOSED, send() {}, addEventListener() {} };
       let stream = null;
       let liveTimer = null;
 
       function setStatus(message) {
         statusEl.textContent = message;
         if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "phone-status", message }));
+      }
+
+      if (!scannerToken) {
+        setStatus("Acesso negado. Escaneie o QR no MoldeLab com sua conta logada.");
+        startCamera.disabled = true;
+        sendFrame.disabled = true;
+        toggleLive.disabled = true;
+        fallbackPhoto.disabled = true;
       }
 
       async function openCamera() {
@@ -133,7 +145,10 @@
         try {
           const response = await fetch("/scanner-frame", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "X-Scanner-Token": scannerToken || "",
+            },
             body: JSON.stringify({ type: "frame", dataUrl, capturedAt: Date.now() }),
           });
           setStatus(response.ok ? "Foto enviada ao MoldeLab por fallback HTTP." : "Falha ao enviar foto por fallback HTTP.");
