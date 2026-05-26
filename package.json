@@ -1,0 +1,12 @@
+{
+  "name": "moldelab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Editor web de modelagem de moldes vetoriais",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node scanner-server.js"
+  }
+}

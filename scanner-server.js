@@ -6,7 +6,7 @@ const os = require("os");
 const path = require("path");
 
 const root = __dirname;
-const port = Number(process.env.MOLDELAB_SCANNER_PORT || 8787);
+const port = Number(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT || 8787);
 const desktops = new Set();
 const mobiles = new Set();
 let latestFrame = null;
@@ -31,8 +31,21 @@ function localAddress() {
   return "127.0.0.1";
 }
 
-function mobileUrl() {
-  return `http://${localAddress()}:${port}/mobile-scanner.html`;
+function publicOrigin(request) {
+  if (request) {
+    const host = request.headers["x-forwarded-host"] || request.headers.host;
+    if (host) {
+      const protoHeader = request.headers["x-forwarded-proto"];
+      const proto = protoHeader ? String(protoHeader).split(",")[0].trim() : "http";
+      return `${proto}://${host}`;
+    }
+  }
+  if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "");
+  return `http://${localAddress()}:${port}`;
+}
+
+function mobileUrl(request) {
+  return `${publicOrigin(request)}/mobile-scanner.html`;
 }
 
 function qrSvg(text) {
@@ -384,12 +397,12 @@ const server = http.createServer((request, response) => {
   }
   if (url.pathname === "/scanner-info.json") {
     response.writeHead(200, { "Content-Type": mimeTypes[".json"] });
-    response.end(JSON.stringify({ mobileUrl: mobileUrl(), qrUrl: "/scanner-qr.svg" }));
+    response.end(JSON.stringify({ mobileUrl: mobileUrl(request), qrUrl: "/scanner-qr.svg" }));
     return;
   }
   if (url.pathname === "/scanner-qr.svg") {
     response.writeHead(200, { "Content-Type": mimeTypes[".svg"], "Cache-Control": "no-store" });
-    response.end(qrSvg(mobileUrl()));
+    response.end(qrSvg(mobileUrl(request)));
     return;
   }
   const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
@@ -426,7 +439,8 @@ server.on("error", (error) => {
 });
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`MoldeLab local: http://localhost:${port}`);
+  const localUrl = `http://localhost:${port}`;
+  console.log(`MoldeLab: ${process.env.RENDER_EXTERNAL_URL || localUrl}`);
   console.log(`Scanner mobile: ${mobileUrl()}`);
   console.log("Abra o MoldeLab pelo endereco local e leia o QR Code pelo celular.");
   if (process.env.MOLDELAB_OPEN_BROWSER === "1") {
