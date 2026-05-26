@@ -11,7 +11,7 @@ const root = __dirname;
 const port = Number(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT || 8787);
 const desktops = new Set();
 const mobiles = new Set();
-let latestFrame = null;
+const latestFramesByUser = new Map();
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -330,27 +330,38 @@ function readWsFrames(buffer) {
 }
 
 function routeWs(socket, role, raw) {
-  const targets = role === "mobile" ? desktops : mobiles;
-  for (const target of targets) sendWs(target, raw);
+  if (role === "mobile") {
+    for (const desktop of desktops) {
+      if (desktop.userId === socket.userId) sendWs(desktop, raw);
+    }
+    return;
+  }
+  for (const mobile of mobiles) {
+    if (mobile.userId === socket.userId) sendWs(mobile, raw);
+  }
 }
 
-function sendToDesktops(payload) {
+function sendToDesktops(payload, userId) {
   const raw = typeof payload === "string" ? payload : JSON.stringify(payload);
-  for (const desktop of desktops) sendWs(desktop, raw);
+  for (const desktop of desktops) {
+    if (desktop.userId === userId) sendWs(desktop, raw);
+  }
 }
 
-function receiveMobileFrame(payload) {
-  latestFrame = {
+function receiveMobileFrame(payload, userId) {
+  const frame = {
     type: "frame",
     dataUrl: payload.dataUrl,
     capturedAt: payload.capturedAt || Date.now(),
     id: crypto.randomUUID(),
+    userId,
   };
-  sendToDesktops(latestFrame);
-  return latestFrame;
+  latestFramesByUser.set(userId, frame);
+  sendToDesktops(frame, userId);
+  return frame;
 }
 
-function acceptWebSocket(request, socket, role) {
+function acceptWebSocket(request, socket, role, userId) {
   const key = request.headers["sec-websocket-key"];
   const accept = crypto.createHash("sha1").update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
   socket.write(
@@ -360,6 +371,7 @@ function acceptWebSocket(request, socket, role) {
       `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
   );
   const group = role === "mobile" ? mobiles : desktops;
+  socket.userId = userId;
   group.add(socket);
   socket.wsBuffer = Buffer.alloc(0);
   socket.on("data", (chunk) => {
@@ -371,7 +383,7 @@ function acceptWebSocket(request, socket, role) {
         try {
           const payload = JSON.parse(message);
           if (payload.type === "frame" && payload.dataUrl) {
-            receiveMobileFrame(payload);
+            receiveMobileFrame(payload, socket.userId);
             return;
           }
         } catch (error) {
@@ -391,7 +403,8 @@ const server = http.createServer((request, response) => {
   if (auth.handleAuthApi(request, response, url)) return;
 
   if (url.pathname === "/scanner-frame" && request.method === "POST") {
-    if (!resolveScannerUserId(request, url)) {
+    const scannerUserId = resolveScannerUserId(request, url);
+    if (!scannerUserId) {
       denyScanner(response);
       return;
     }
@@ -405,7 +418,7 @@ const server = http.createServer((request, response) => {
       try {
         const payload = JSON.parse(body);
         if (!payload.dataUrl) throw new Error("missing frame");
-        const frame = receiveMobileFrame(payload);
+        const frame = receiveMobileFrame(payload, scannerUserId);
         response.writeHead(200, { "Content-Type": mimeTypes[".json"] });
         response.end(JSON.stringify({ ok: true, desktops: desktops.size, frameId: frame.id }));
       } catch (error) {
@@ -416,12 +429,13 @@ const server = http.createServer((request, response) => {
     return;
   }
   if (url.pathname === "/scanner-latest-frame.json") {
-    if (!auth.getApprovedUser(request)) {
+    const approved = auth.getApprovedUser(request);
+    if (!approved) {
       denyScanner(response);
       return;
     }
     response.writeHead(200, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
-    response.end(JSON.stringify({ ok: true, frame: latestFrame }));
+    response.end(JSON.stringify({ ok: true, frame: latestFramesByUser.get(approved.id) || null }));
     return;
   }
   if (url.pathname === "/scanner-info.json") {
@@ -484,20 +498,22 @@ server.on("upgrade", (request, socket) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   if (url.pathname === "/ws/mobile") {
     const wsUrl = new URL(request.url, `http://${request.headers.host}`);
-    if (!resolveScannerUserId(request, wsUrl)) {
+    const scannerUserId = resolveScannerUserId(request, wsUrl);
+    if (!scannerUserId) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
       return;
     }
-    return acceptWebSocket(request, socket, "mobile");
+    return acceptWebSocket(request, socket, "mobile", scannerUserId);
   }
   if (url.pathname === "/ws/desktop") {
-    if (!auth.getApprovedUser(request)) {
+    const approved = auth.getApprovedUser(request);
+    if (!approved) {
       socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
       socket.destroy();
       return;
     }
-    return acceptWebSocket(request, socket, "desktop");
+    return acceptWebSocket(request, socket, "desktop", approved.id);
   }
   socket.destroy();
 });
