@@ -97,6 +97,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Margem entre pecas inicia em 0 cm por padrao
 - Encaixe pode girar pecas em 180 graus sem mudar o sentido do fio
 - Encaixe testa estrategias alternando pecas em 0 e 180 graus para melhorar pares como mangas
+- Pecas repetidas do mesmo modelo/tamanho alternam preferencia 0/180 durante o nesting
 - Mensagem do encaixe informa comprimento final, porcentagem de aproveitamento e avisos importantes
 - Cabecario do risco com largura, comprimento, pecas encaixadas, aproveitamento, grade, modelos e arquivo
 - Cabecario mostra texto completo dos titulos e celulas no hover

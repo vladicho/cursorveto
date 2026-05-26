@@ -1624,6 +1624,19 @@ async function autoNest() {
         ...piece,
         nestingRotationBias: shouldRotate(piece, index) ? 180 : 0,
       }));
+    const duplicateKey = (piece) => `${piece.model || ""}|${piece.name}|${piece.size || ""}`;
+    const withDuplicateRotationBias = (order, offset = 0) => {
+      const counts = new Map();
+      return order.map((piece) => {
+        const key = duplicateKey(piece);
+        const index = counts.get(key) || 0;
+        counts.set(key, index + 1);
+        return {
+          ...piece,
+          nestingRotationBias: (index + offset) % 2 === 1 ? 180 : 0,
+        };
+      });
+    };
     const areaDesc = byMetric((item) => item.area);
     const heightDesc = byMetric((item) => item.height);
     const widthDesc = byMetric((item) => item.width);
@@ -1646,6 +1659,10 @@ async function autoNest() {
       withRotationBias(widthDesc, (_piece, index) => index % 2 === 0),
       withRotationBias(heightDesc, (_piece, index) => index % 2 === 1),
       withRotationBias(heightDesc, (_piece, index) => index % 2 === 0),
+      withDuplicateRotationBias(areaDesc),
+      withDuplicateRotationBias(areaDesc, 1),
+      withDuplicateRotationBias(widthDesc),
+      withDuplicateRotationBias(widthDesc, 1),
     ];
     let best = null;
     let attempts = 0;
@@ -1678,9 +1695,10 @@ async function autoNest() {
     };
     const mixedOrder = () => {
       const base = Math.random() > 0.5 ? areaDesc : widthDesc;
-      return shuffledOrder(base).map((piece, index) => ({
+      const offset = Math.random() > 0.5 ? 1 : 0;
+      return withDuplicateRotationBias(shuffledOrder(base), offset).map((piece, index) => ({
         ...piece,
-        nestingRotationBias: Math.random() > 0.55 || index % 2 === 1 ? 180 : 0,
+        nestingRotationBias: piece.nestingRotationBias === 180 || Math.random() > 0.72 || index % 3 === 1 ? 180 : 0,
       })).sort((a, b) => {
         const noise = (Math.random() - 0.5) * Math.max(metric(a).area, metric(b).area) * 0.35;
         return metric(b).area + noise - metric(a).area;
