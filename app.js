@@ -99,6 +99,8 @@ const ui = {
 const baseScale = 4;
 const origin = { x: 56, y: 66 };
 const minimumMarkerLength = 220;
+const minimumCanvasSize = { width: 1280, height: 760 };
+const maximumCanvasSize = { width: 32000, height: 12000 };
 const view = { zoom: 1, panX: 0, panY: 0 };
 
 let mode = "move";
@@ -1437,7 +1439,24 @@ function drawMeasureGuide() {
   ctx.restore();
 }
 
+function syncCanvasSizeToMarker() {
+  const fabricWidth = Number(ui.fabricWidth.value);
+  const markerWidth = origin.x * 2 + markerLength() * baseScale * view.zoom + 80;
+  const markerHeight = origin.y * 2 + fabricWidth * baseScale * view.zoom + 90;
+  const nextWidth = Math.min(maximumCanvasSize.width, Math.max(minimumCanvasSize.width, Math.ceil(markerWidth)));
+  const nextHeight = Math.min(maximumCanvasSize.height, Math.max(minimumCanvasSize.height, Math.ceil(markerHeight)));
+  if (canvas.width !== nextWidth) {
+    canvas.width = nextWidth;
+    canvas.style.width = `${nextWidth}px`;
+  }
+  if (canvas.height !== nextHeight) {
+    canvas.height = nextHeight;
+    canvas.style.height = `${nextHeight}px`;
+  }
+}
+
 function draw() {
+  syncCanvasSizeToMarker();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawFabric();
   drawBackgroundImage();

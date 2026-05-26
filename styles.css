@@ -711,7 +711,8 @@ button.danger-action:hover:not(:disabled) {
 
 canvas {
   display: block;
-  width: min(100%, 1280px);
+  width: 1280px;
+  max-width: none;
   height: auto;
   background: white;
   border: 1px solid var(--line);

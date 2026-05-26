@@ -75,6 +75,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Encaixe avisa quando nenhuma peca coube na largura atual sem alterar o projeto
 - Resultado do encaixe lista quais pecas ficaram fora quando nem todas couberem
 - Se uma peca couber na largura, o encaixe aumenta o comprimento do risco para incluir ela
+- Canvas aumenta em largura quando o comprimento do risco cresce
 - Comprimento e aproveitamento finais usam apenas o melhor encaixe encontrado
 - Quando alguma peca fica fora, o editor seleciona a primeira delas para ajuste
 - Linha final e cabecario seguem as metricas do ultimo encaixe aplicado
