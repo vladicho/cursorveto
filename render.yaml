@@ -3,9 +3,11 @@ services:
     name: moldelab
     runtime: node
     plan: free
-    buildCommand: ""
+    buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /
     envVars:
       - key: NODE_VERSION
         value: "22"
+      - key: MOLDELAB_JWT_SECRET
+        generateValue: true

@@ -4,6 +4,7 @@ const fs = require("fs");
 const http = require("http");
 const os = require("os");
 const path = require("path");
+const auth = require("./lib/auth");
 
 const root = __dirname;
 const port = Number(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT || 8787);
@@ -370,6 +371,8 @@ function acceptWebSocket(request, socket, role) {
 
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
+  if (auth.handleAuthApi(request, response, url)) return;
+
   if (url.pathname === "/scanner-frame" && request.method === "POST") {
     let body = "";
     request.on("data", (chunk) => {
@@ -406,6 +409,15 @@ const server = http.createServer((request, response) => {
     return;
   }
   const requestedPath = url.pathname === "/" ? "/index.html" : url.pathname;
+  if (!auth.isPublicPath(requestedPath) && !auth.getUserFromRequest(request)) {
+    if (requestedPath === "/index.html") {
+      auth.redirectToLogin(response, "/");
+      return;
+    }
+    response.writeHead(401, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Autenticacao necessaria.");
+    return;
+  }
   const filePath = path.normalize(path.join(root, requestedPath));
   if (!filePath.startsWith(root)) {
     response.writeHead(403);
@@ -426,7 +438,14 @@ const server = http.createServer((request, response) => {
 server.on("upgrade", (request, socket) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   if (url.pathname === "/ws/mobile") return acceptWebSocket(request, socket, "mobile");
-  if (url.pathname === "/ws/desktop") return acceptWebSocket(request, socket, "desktop");
+  if (url.pathname === "/ws/desktop") {
+    if (!auth.getUserFromRequest(request)) {
+      socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+    return acceptWebSocket(request, socket, "desktop");
+  }
   socket.destroy();
 });
 
@@ -437,6 +456,8 @@ server.on("error", (error) => {
   }
   console.error("Nao foi possivel iniciar o servidor local:", error.message);
 });
+
+auth.init();
 
 server.listen(port, "0.0.0.0", () => {
   const localUrl = `http://localhost:${port}`;

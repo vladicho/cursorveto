@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MoldeLab - Entrar</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="auth-page">
+    <main class="auth-shell">
+      <section class="auth-card">
+        <div class="brand">
+          <span class="brand-mark">M</span>
+          <div>
+            <h1>MoldeLab</h1>
+            <p>Entre para usar o editor</p>
+          </div>
+        </div>
+
+        <div class="auth-tabs" role="tablist">
+          <button id="tabLogin" class="auth-tab active" type="button" data-tab="login">Entrar</button>
+          <button id="tabRegister" class="auth-tab" type="button" data-tab="register">Criar conta</button>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+          <label>
+            Email
+            <input id="loginEmail" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Senha
+            <input id="loginPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="primary" type="submit">Entrar</button>
+        </form>
+
+        <form id="registerForm" class="auth-form" hidden>
+          <label>
+            Nome
+            <input id="registerName" type="text" autocomplete="name" required />
+          </label>
+          <label>
+            Email
+            <input id="registerEmail" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Senha
+            <input id="registerPassword" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <button class="primary" type="submit">Criar conta</button>
+        </form>
+
+        <p id="authMessage" class="auth-message" hidden></p>
+      </section>
+    </main>
+    <script src="login.js"></script>
+  </body>
+</html>

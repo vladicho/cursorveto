@@ -3964,6 +3964,35 @@ document.addEventListener("keydown", (event) => {
 setupMenuBehavior();
 window.addEventListener("load", refreshIcons);
 window.addEventListener("load", connectLocalScanner);
+window.addEventListener("load", initAuthUi);
+
+async function initAuthUi() {
+  const userMenu = document.querySelector("#userMenu");
+  const userLabel = document.querySelector("#userLabel");
+  const logoutBtn = document.querySelector("#logoutBtn");
+  if (!userMenu || !userLabel || !logoutBtn) return;
+
+  try {
+    const response = await fetch("/api/auth/me", { credentials: "same-origin" });
+    if (!response.ok) {
+      window.location.href = `/login.html?next=${encodeURIComponent(window.location.pathname || "/")}`;
+      return;
+    }
+    const data = await response.json();
+    if (!data.ok || !data.user) {
+      window.location.href = `/login.html?next=${encodeURIComponent(window.location.pathname || "/")}`;
+      return;
+    }
+    userLabel.textContent = data.user.name || data.user.email;
+    userMenu.hidden = false;
+    logoutBtn.addEventListener("click", async () => {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+      window.location.href = "/login.html";
+    });
+  } catch {
+    window.location.href = "/login.html";
+  }
+}
 
 setMarkerHeaderVisible(!ui.markerHeader.hidden);
 draw();
