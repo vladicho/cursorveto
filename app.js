@@ -319,6 +319,10 @@ function currentMarkerPieces() {
   return pieces.filter((piece) => placedIds.has(piece.id));
 }
 
+function isPieceOutsideAppliedNesting(piece) {
+  return Boolean(lastNestingPlacedIds && !lastNestingPlacedIds.includes(piece.id));
+}
+
 function validNestingStats(stats) {
   if (!stats || typeof stats !== "object") return null;
   const usedLength = Number(stats.usedLength);
@@ -932,15 +936,21 @@ function drawGrainline(piece, points) {
   ctx.restore();
 }
 
-function drawPiece(piece, hasCollision) {
+function drawPiece(piece, hasCollision, outsideAppliedNesting = false) {
   const points = transformedPoints(piece);
   const pieceColor = safePieceColor(piece.color);
+  ctx.save();
+  if (outsideAppliedNesting) {
+    ctx.globalAlpha = 0.42;
+    ctx.setLineDash([9, 6]);
+  }
   drawPolyline(points, true);
   ctx.fillStyle = hasCollision ? "rgba(194, 65, 12, 0.18)" : `${pieceColor}26`;
   ctx.strokeStyle = hasCollision ? "#c2410c" : pieceColor;
   ctx.lineWidth = selectedId === piece.id ? 4 : 2;
   ctx.fill();
   ctx.stroke();
+  ctx.restore();
 
   if (piece.locked) {
     ctx.save();
@@ -954,10 +964,13 @@ function drawPiece(piece, hasCollision) {
 
   const box = bounds(points);
   const label = worldToScreen([box.minX + 2, box.minY + 5]);
+  ctx.save();
+  if (outsideAppliedNesting) ctx.globalAlpha = 0.62;
   ctx.fillStyle = "#1d2424";
   ctx.font = "700 13px Arial";
   ctx.textAlign = "left";
   ctx.fillText(pieceDisplayLabel(piece), label[0], label[1]);
+  ctx.restore();
   drawSeamAllowance(piece, points);
   drawGrainline(piece, points);
   drawNotches(piece, points);
@@ -1403,7 +1416,7 @@ function draw() {
   drawFabric();
   drawBackgroundImage();
   const collisions = collisionInfo();
-  pieces.forEach((piece) => drawPiece(piece, collisions.ids.has(piece.id)));
+  pieces.forEach((piece) => drawPiece(piece, collisions.ids.has(piece.id), isPieceOutsideAppliedNesting(piece)));
   drawNestingPreview();
   drawMarkerEndLine();
   drawDigitizeGuides();
