@@ -56,14 +56,14 @@ function publicOrigin(request) {
 }
 
 function resolveScannerUserId(request, url) {
-  const approved = auth.getApprovedUser(request);
+  const approved = request ? auth.getApprovedUser(request) : null;
   if (approved) return approved.id;
   const token = scannerToken.extractFromRequest(request, url);
   return scannerToken.validate(token);
 }
 
 function mobileUrl(request) {
-  const approved = auth.getApprovedUser(request);
+  const approved = request ? auth.getApprovedUser(request) : null;
   const base = `${publicOrigin(request)}/mobile-scanner.html`;
   if (!approved) return base;
   const token = scannerToken.create(approved.id);
