@@ -88,7 +88,11 @@ async function loadUsers() {
     pendingData.users.forEach((user) => renderUserCard(user, pendingUsers));
   }
 
-  allData.users.forEach((user) => renderUserCard(user, allUsers));
+  if (!allData.users.length) {
+    allUsers.innerHTML = '<p class="admin-empty">Nenhum usuario encontrado.</p>';
+  } else {
+    allData.users.forEach((user) => renderUserCard(user, allUsers));
+  }
 }
 
 refreshUsers.addEventListener("click", () => loadUsers().catch(() => showMessage("Erro ao atualizar.", true)));

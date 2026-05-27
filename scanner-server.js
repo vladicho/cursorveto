@@ -539,7 +539,7 @@ const server = http.createServer((request, response) => {
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": ext === ".html" ? "no-store" : "public, max-age=3600",
     };
-    if (ext === ".js") headers["Cache-Control"] = "public, max-age=86400, immutable";
+    if (ext === ".js") headers["Cache-Control"] = "no-cache";
     response.writeHead(200, headers);
     response.end(content);
   });
