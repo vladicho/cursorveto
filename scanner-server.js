@@ -431,6 +431,12 @@ const server = http.createServer((request, response) => {
     return;
   }
 
+  if (url.pathname === "/health" && request.method === "GET") {
+    response.writeHead(200, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
+    response.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   if (url.pathname === "/scanner-frame" && request.method === "POST") {
     const scannerUserId = resolveScannerUserId(request, url);
     if (!scannerUserId) {
