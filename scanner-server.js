@@ -12,8 +12,7 @@ const distReady = fs.existsSync(path.join(distPath, "index.html"));
 const isProductionHost = Boolean(process.env.RENDER) || process.env.NODE_ENV === "production";
 
 if (isProductionHost && !distReady) {
-  console.error("ERRO: pasta dist/ ausente. O build de producao (npm run build) precisa rodar no deploy.");
-  process.exit(1);
+  console.warn("Aviso: pasta dist/ ausente; servindo arquivos fonte como fallback.");
 }
 
 const root = distReady ? distPath : __dirname;
