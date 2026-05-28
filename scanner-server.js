@@ -17,7 +17,9 @@ if (isProductionHost && !distReady) {
 
 const root = distReady ? distPath : __dirname;
 const sourceRoot = __dirname;
-const port = Number(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT || 8787);
+const requestedPort = Number(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT || 8787);
+const fixedPort = Boolean(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT);
+let activePort = requestedPort;
 const desktops = new Set();
 const mobiles = new Set();
 const latestFramesByUser = new Map();
@@ -52,7 +54,7 @@ function publicOrigin(request) {
     }
   }
   if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "");
-  return `http://${localAddress()}:${port}`;
+  return `http://${localAddress()}:${activePort}`;
 }
 
 function resolveScannerUserId(request, url) {
@@ -569,14 +571,6 @@ server.on("upgrade", (request, socket) => {
   socket.destroy();
 });
 
-server.on("error", (error) => {
-  if (error.code === "EADDRINUSE") {
-    console.error(`Porta ${port} ja esta em uso. Se o MoldeLab ja estiver aberto, use http://localhost:${port}.`);
-    return;
-  }
-  console.error("Nao foi possivel iniciar o servidor local:", error.message);
-});
-
 try {
   auth.init();
 } catch (error) {
@@ -584,13 +578,32 @@ try {
   process.exit(1);
 }
 
-server.listen(port, "0.0.0.0", () => {
-  const localUrl = `http://localhost:${port}`;
-  console.log(`MoldeLab: ${process.env.RENDER_EXTERNAL_URL || localUrl}`);
-  console.log(`Frontend: ${distReady ? "dist (minificado)" : "source (desenvolvimento)"}`);
-  console.log(`Scanner mobile: ${mobileUrl()}`);
-  console.log("Abra o MoldeLab pelo endereco local e leia o QR Code pelo celular.");
-  if (process.env.MOLDELAB_OPEN_BROWSER === "1") {
-    childProcess.exec(`start "" "http://localhost:${port}"`);
-  }
-});
+function listen(portToTry) {
+  activePort = portToTry;
+  server.once("error", (error) => {
+    if (error.code === "EADDRINUSE" && !fixedPort && portToTry < requestedPort + 20) {
+      console.warn(`Porta ${portToTry} em uso; tentando ${portToTry + 1}.`);
+      listen(portToTry + 1);
+      return;
+    }
+    if (error.code === "EADDRINUSE") {
+      console.error(`Porta ${portToTry} ja esta em uso. Feche o MoldeLab aberto ou altere MOLDELAB_SCANNER_PORT.`);
+      process.exit(1);
+    }
+    console.error("Nao foi possivel iniciar o servidor local:", error.message);
+    process.exit(1);
+  });
+
+  server.listen(portToTry, "0.0.0.0", () => {
+    const localUrl = `http://localhost:${activePort}`;
+    console.log(`MoldeLab: ${process.env.RENDER_EXTERNAL_URL || localUrl}`);
+    console.log(`Frontend: ${distReady ? "dist (minificado)" : "source (desenvolvimento)"}`);
+    console.log(`Scanner mobile: ${mobileUrl()}`);
+    console.log("Abra o MoldeLab pelo endereco local e leia o QR Code pelo celular.");
+    if (process.env.MOLDELAB_OPEN_BROWSER === "1") {
+      childProcess.exec(`start "" "${localUrl}"`);
+    }
+  });
+}
+
+listen(requestedPort);

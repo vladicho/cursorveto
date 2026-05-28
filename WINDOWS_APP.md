@@ -86,6 +86,33 @@ core/
 5. Iniciar/parar o servidor local do scanner e exibir QR Code para o celular.
 6. Depois mover importadores e nesting pesado para `core/`.
 
+## Execucao local atual
+
+O prototipo Windows ja pode ser aberto pelo arquivo:
+
+```text
+abrir-moldelab.cmd
+```
+
+Esse launcher:
+
+- procura um Node.js disponivel
+- prefere o runtime embutido do Codex quando existir
+- inicia o servidor local do MoldeLab
+- abre o navegador automaticamente
+- desativa login no modo local (`MOLDELAB_AUTH_DISABLED=1`)
+- salva dados locais em `%APPDATA%\MoldeLab`
+- tenta outra porta automaticamente quando a porta padrao `8787` esta ocupada
+
+Para uso local, o endereco principal e:
+
+```text
+http://localhost:8787
+```
+
+Se a porta estiver ocupada, confira a janela do terminal; ela mostra a porta
+alternativa escolhida.
+
 ## Scanner local com celular
 
 Arquitetura implementada no prototipo:
