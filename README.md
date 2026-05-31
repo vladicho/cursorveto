@@ -149,6 +149,8 @@ Exportacao atual:
 Execute `abrir-moldelab.cmd` no Windows. Esse atalho inicia o servidor local e
 abre `http://localhost:8787`, necessario para o QR Code e o scanner pelo celular.
 
+Para aprender o fluxo completo do editor, veja [TUTORIAL_USO.md](TUTORIAL_USO.md).
+
 ## Deploy no Render
 
 O deploy atual usa `plan: free` e pula login com `MOLDELAB_AUTH_DISABLED=1`,
@@ -179,6 +181,7 @@ scanner-server.js      Servidor local HTTP/WebSocket para scanner via celular
 mobile-scanner.html    Pagina mobile que usa a camera do navegador do celular
 abrir-scanner-local.cmd Atalho para iniciar o servidor local no Windows
 IMPORTADORES.md        Arquitetura dos importadores
+TUTORIAL_USO.md        Tutorial pratico de uso do editor
 MANUAL_GRADING.md      Estrategia de grade manual de tamanhos
 PRODUCT_STRATEGY.md    Estrategia para superar sistemas legados
 QUALITY_ASSURANCE.md   Checklist de controle de qualidade
