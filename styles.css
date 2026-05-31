@@ -615,6 +615,12 @@ button.danger-action:hover:not(:disabled) {
   font-weight: 700;
 }
 
+.menu-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 4px 0;
+}
+
 .piece-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

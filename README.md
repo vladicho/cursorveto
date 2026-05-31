@@ -47,6 +47,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Alinhamento rapido da peca selecionada no tecido
 - Movimento fino da peca selecionada pelo teclado
 - Renomear, duplicar e apagar pecas para grade manual
+- Graduacao automatica por lista de tamanhos, com aumento de largura e altura por tamanho
 - Edicao, insercao e remocao de pontos
 - Movimento fino do ponto selecionado pelo teclado
 - Ajuste opcional de pontos e pecas na grade

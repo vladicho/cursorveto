@@ -81,6 +81,11 @@ const ui = {
   gradeDown: document.querySelector("#gradeDown"),
   gradeLeft: document.querySelector("#gradeLeft"),
   gradeRight: document.querySelector("#gradeRight"),
+  autoGradeSizes: document.querySelector("#autoGradeSizes"),
+  autoGradeWidth: document.querySelector("#autoGradeWidth"),
+  autoGradeHeight: document.querySelector("#autoGradeHeight"),
+  autoGradeGap: document.querySelector("#autoGradeGap"),
+  autoGradePiece: document.querySelector("#autoGradePiece"),
   rotation: document.querySelector("#rotation"),
   grainAngle: document.querySelector("#grainAngle"),
   selectionName: document.querySelector("#selectionName"),
@@ -2797,6 +2802,93 @@ function gradeSelectedPoint(deltaX, deltaY) {
   draw();
 }
 
+function parseAutoGradeSizes() {
+  return ui.autoGradeSizes.value
+    .split(",")
+    .map((size) => size.trim())
+    .filter(Boolean)
+    .filter((size, index, allSizes) => allSizes.indexOf(size) === index);
+}
+
+function autoGradeSelectedPiece() {
+  const source = selectedPiece();
+  if (!source) {
+    updateImportStatus("Selecione uma peca para graduar automaticamente.");
+    return;
+  }
+  if (source.locked) {
+    updateImportStatus("Desbloqueie a peca antes de graduar automaticamente.");
+    return;
+  }
+
+  const sizes = parseAutoGradeSizes();
+  if (sizes.length < 2) {
+    updateImportStatus("Informe pelo menos dois tamanhos separados por virgula.");
+    return;
+  }
+
+  const sourceSize = String(source.size || "").trim();
+  const baseIndex = Math.max(0, sizes.indexOf(sourceSize));
+  const widthStep = Math.max(0, Number(ui.autoGradeWidth.value) || 0);
+  const heightStep = Math.max(0, Number(ui.autoGradeHeight.value) || 0);
+  const gap = Math.max(1, Number(ui.autoGradeGap.value) || 10);
+  if (widthStep === 0 && heightStep === 0) {
+    updateImportStatus("Ajuste largura ou altura para gerar a graduacao automatica.");
+    return;
+  }
+
+  const sourceBox = bounds(source.points);
+  const sourceWidth = Math.max(0.1, sourceBox.maxX - sourceBox.minX);
+  const sourceHeight = Math.max(0.1, sourceBox.maxY - sourceBox.minY);
+  const center = centroid(source.points);
+  const existingIds = new Set(pieces.map((piece) => piece.id));
+  const copyWidth = sourceWidth + widthStep * Math.max(1, sizes.length - 1);
+  let created = 0;
+
+  recordHistory();
+  sizes.forEach((size, sizeIndex) => {
+    if (sizeIndex === baseIndex && sourceSize === size) {
+      source.size = size;
+      return;
+    }
+
+    const gradeOffset = sizeIndex - baseIndex;
+    const nextWidth = Math.max(0.1, sourceWidth + widthStep * gradeOffset);
+    const nextHeight = Math.max(0.1, sourceHeight + heightStep * gradeOffset);
+    const scaleX = nextWidth / sourceWidth;
+    const scaleY = nextHeight / sourceHeight;
+    let id = `grade-${source.id}-${size.toLowerCase().replace(/[^a-z0-9]+/g, "-") || sizeIndex}`;
+    let suffix = 2;
+    while (existingIds.has(id)) {
+      id = `grade-${source.id}-${size.toLowerCase().replace(/[^a-z0-9]+/g, "-") || sizeIndex}-${suffix}`;
+      suffix += 1;
+    }
+    existingIds.add(id);
+
+    pieces.push({
+      ...source,
+      id,
+      name: `${source.name} ${size}`,
+      size,
+      x: source.x + (created + 1) * (copyWidth + gap),
+      y: source.y,
+      locked: false,
+      points: source.points.map(([x, y]) => [
+        center[0] + (x - center[0]) * scaleX,
+        center[1] + (y - center[1]) * scaleY,
+      ]),
+      notches: [...(source.notches || [])],
+    });
+    created += 1;
+  });
+
+  selectedId = source.id;
+  selectedPointIndex = null;
+  mode = "move";
+  updateImportStatus(`Graduacao automatica criada: ${created} copias a partir de ${source.name}.`);
+  draw();
+}
+
 function handleFloatingToolbarAction(action) {
   const actions = {
     move: () => ui.modeMove.click(),
@@ -4038,6 +4130,7 @@ ui.gradeUp.addEventListener("click", () => gradeSelectedPoint(0, -1));
 ui.gradeDown.addEventListener("click", () => gradeSelectedPoint(0, 1));
 ui.gradeLeft.addEventListener("click", () => gradeSelectedPoint(-1, 0));
 ui.gradeRight.addEventListener("click", () => gradeSelectedPoint(1, 0));
+ui.autoGradePiece.addEventListener("click", autoGradeSelectedPiece);
 ui.projectName.addEventListener("input", () => updateMarkerHeader(currentMarkerStats()));
 ui.pieceName.addEventListener("change", renameSelectedPiece);
 ui.pieceModel.addEventListener("change", () => updateSelectedPieceMeta("model", ui.pieceModel));
