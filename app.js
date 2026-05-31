@@ -85,6 +85,13 @@ const ui = {
   gradeCopyColor: document.querySelector("#gradeCopyColor"),
   createGradeCopy: document.querySelector("#createGradeCopy"),
   gradePointNumber: document.querySelector("#gradePointNumber"),
+  gradeIncremental: document.querySelector("#gradeIncremental"),
+  gradeIncrement: document.querySelector("#gradeIncrement"),
+  gradeTableUp: document.querySelector("#gradeTableUp"),
+  gradeTableDown: document.querySelector("#gradeTableDown"),
+  gradeTableLeft: document.querySelector("#gradeTableLeft"),
+  gradeTableRight: document.querySelector("#gradeTableRight"),
+  gradeTableZero: document.querySelector("#gradeTableZero"),
   applyGradeTable: document.querySelector("#applyGradeTable"),
   rotation: document.querySelector("#rotation"),
   grainAngle: document.querySelector("#grainAngle"),
@@ -146,6 +153,7 @@ let nestingCancelRequested = false;
 let nestingPreview = null;
 let lastNestingStats = null;
 let lastNestingPlacedIds = null;
+let activeGradeRowIndex = 1;
 
 const pieces = [];
 
@@ -2779,6 +2787,38 @@ function gradeTableRows() {
   })).filter((row) => row.size);
 }
 
+function setActiveGradeRow(rowIndex) {
+  activeGradeRowIndex = Math.max(0, Math.min(2, Number(rowIndex) || 0));
+  document.querySelectorAll("[data-grade-row]").forEach((input) => {
+    input.dataset.gradeActive = input.dataset.gradeRow === String(activeGradeRowIndex) ? "true" : "false";
+  });
+}
+
+function activeGradeInput(selector) {
+  return document.querySelector(`${selector}[data-grade-row="${activeGradeRowIndex}"]`);
+}
+
+function updateActiveGradeRow(deltaX, deltaY) {
+  const step = Math.max(0.1, Number(ui.gradeIncrement.value) || 1);
+  const dxInput = activeGradeInput(".grade-table-dx");
+  const dyInput = activeGradeInput(".grade-table-dy");
+  if (!dxInput || !dyInput) return;
+  const currentDx = Number(dxInput.value) || 0;
+  const currentDy = Number(dyInput.value) || 0;
+  const nextDx = ui.gradeIncremental.checked ? currentDx + deltaX * step : deltaX * step;
+  const nextDy = ui.gradeIncremental.checked ? currentDy + deltaY * step : deltaY * step;
+  dxInput.value = String(Number(nextDx.toFixed(2)));
+  dyInput.value = String(Number(nextDy.toFixed(2)));
+}
+
+function zeroActiveGradeRow() {
+  const dxInput = activeGradeInput(".grade-table-dx");
+  const dyInput = activeGradeInput(".grade-table-dy");
+  if (!dxInput || !dyInput) return;
+  dxInput.value = "0";
+  dyInput.value = "0";
+}
+
 function basePieceForGrading(piece) {
   if (!piece) return null;
   return pieces.find((item) => item.id === piece.gradeBaseId) || piece;
@@ -4094,6 +4134,15 @@ ui.gradeLeft.addEventListener("click", () => gradeSelectedPoint(-1, 0));
 ui.gradeRight.addEventListener("click", () => gradeSelectedPoint(1, 0));
 ui.createGradeCopy.addEventListener("click", createGradingCopy);
 ui.applyGradeTable.addEventListener("click", applyGradeTableToSelectedPoint);
+document.querySelectorAll("[data-grade-row]").forEach((input) => {
+  input.addEventListener("focus", () => setActiveGradeRow(input.dataset.gradeRow));
+  input.addEventListener("click", () => setActiveGradeRow(input.dataset.gradeRow));
+});
+ui.gradeTableUp.addEventListener("click", () => updateActiveGradeRow(0, -1));
+ui.gradeTableDown.addEventListener("click", () => updateActiveGradeRow(0, 1));
+ui.gradeTableLeft.addEventListener("click", () => updateActiveGradeRow(-1, 0));
+ui.gradeTableRight.addEventListener("click", () => updateActiveGradeRow(1, 0));
+ui.gradeTableZero.addEventListener("click", zeroActiveGradeRow);
 ui.projectName.addEventListener("input", () => updateMarkerHeader(currentMarkerStats()));
 ui.pieceName.addEventListener("change", renameSelectedPiece);
 ui.pieceModel.addEventListener("change", () => updateSelectedPieceMeta("model", ui.pieceModel));
@@ -4367,5 +4416,6 @@ async function initAuthUi() {
   }
 }
 
+setActiveGradeRow(activeGradeRowIndex);
 setMarkerHeaderVisible(!ui.markerHeader.hidden);
 draw();

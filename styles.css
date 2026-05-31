@@ -550,6 +550,60 @@ button kbd {
   padding: 0 6px;
 }
 
+.grading-table input[data-grade-active="true"] {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+.grade-row-0 {
+  background: #84cc16;
+}
+
+.grade-row-1 {
+  background: #06b6d4;
+}
+
+.grade-row-2 {
+  background: #d946ef;
+}
+
+.grading-nudge {
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  grid-template-areas:
+    ". up ."
+    "left zero right"
+    ". down .";
+  justify-content: center;
+  gap: 4px;
+}
+
+.grading-nudge button {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+}
+
+#gradeTableUp {
+  grid-area: up;
+}
+
+#gradeTableLeft {
+  grid-area: left;
+}
+
+#gradeTableZero {
+  grid-area: zero;
+}
+
+#gradeTableRight {
+  grid-area: right;
+}
+
+#gradeTableDown {
+  grid-area: down;
+}
+
 .menu-list .icon-action {
   width: 100%;
   justify-content: flex-start;

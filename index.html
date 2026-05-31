@@ -253,15 +253,30 @@
                   <div class="grading-table-head">Tam.</div>
                   <div class="grading-table-head">DX cm</div>
                   <div class="grading-table-head">DY cm</div>
-                  <input class="grade-table-size" value="P" aria-label="Tamanho 1" />
-                  <input class="grade-table-dx" type="number" step="0.1" value="-1" aria-label="DX tamanho 1" />
-                  <input class="grade-table-dy" type="number" step="0.1" value="-1" aria-label="DY tamanho 1" />
-                  <input class="grade-table-size" value="M" aria-label="Tamanho base" />
-                  <input class="grade-table-dx" type="number" step="0.1" value="0" aria-label="DX base" />
-                  <input class="grade-table-dy" type="number" step="0.1" value="0" aria-label="DY base" />
-                  <input class="grade-table-size" value="G" aria-label="Tamanho 3" />
-                  <input class="grade-table-dx" type="number" step="0.1" value="1" aria-label="DX tamanho 3" />
-                  <input class="grade-table-dy" type="number" step="0.1" value="1" aria-label="DY tamanho 3" />
+                  <input class="grade-table-size grade-row-0" data-grade-row="0" value="P" aria-label="Tamanho 1" />
+                  <input class="grade-table-dx grade-row-0" data-grade-row="0" type="number" step="0.1" value="-1" aria-label="DX tamanho 1" />
+                  <input class="grade-table-dy grade-row-0" data-grade-row="0" type="number" step="0.1" value="-1" aria-label="DY tamanho 1" />
+                  <input class="grade-table-size grade-row-1" data-grade-row="1" value="M" aria-label="Tamanho base" />
+                  <input class="grade-table-dx grade-row-1" data-grade-row="1" type="number" step="0.1" value="0" aria-label="DX base" />
+                  <input class="grade-table-dy grade-row-1" data-grade-row="1" type="number" step="0.1" value="0" aria-label="DY base" />
+                  <input class="grade-table-size grade-row-2" data-grade-row="2" value="G" aria-label="Tamanho 3" />
+                  <input class="grade-table-dx grade-row-2" data-grade-row="2" type="number" step="0.1" value="1" aria-label="DX tamanho 3" />
+                  <input class="grade-table-dy grade-row-2" data-grade-row="2" type="number" step="0.1" value="1" aria-label="DY tamanho 3" />
+                </div>
+                <label class="check-row">
+                  <input id="gradeIncremental" type="checkbox" checked />
+                  Incremental
+                </label>
+                <label>
+                  Incremento (cm)
+                  <input id="gradeIncrement" type="number" min="0.1" max="20" step="0.1" value="1" />
+                </label>
+                <div class="grading-nudge" aria-label="Ajustar DX e DY da linha selecionada">
+                  <button id="gradeTableUp" type="button" title="Diminuir DY"><i data-lucide="arrow-up"></i><span>Cima</span></button>
+                  <button id="gradeTableLeft" type="button" title="Diminuir DX"><i data-lucide="arrow-left"></i><span>Esquerda</span></button>
+                  <button id="gradeTableZero" type="button" title="Zerar linha"><span>0</span></button>
+                  <button id="gradeTableRight" type="button" title="Aumentar DX"><i data-lucide="arrow-right"></i><span>Direita</span></button>
+                  <button id="gradeTableDown" type="button" title="Aumentar DY"><i data-lucide="arrow-down"></i><span>Baixo</span></button>
                 </div>
                 <button id="applyGradeTable" type="button"><i data-lucide="table-2"></i><span>Aplicar tabela no ponto</span></button>
               </div>
