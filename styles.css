@@ -464,6 +464,9 @@ button kbd {
   padding: 6px;
   background: white;
   box-shadow: 0 14px 35px rgba(17, 24, 39, 0.16);
+  max-height: min(78vh, calc(100vh - 120px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .topbar .menu-dropdown:nth-last-of-type(-n + 3) .menu-list {
@@ -482,6 +485,9 @@ button kbd {
 
 .grading-menu {
   min-width: 300px;
+  max-width: min(340px, calc(100vw - 24px));
+  max-height: min(68vh, calc(100vh - 150px));
+  padding-right: 8px;
 }
 
 .list-menu {
