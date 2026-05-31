@@ -480,17 +480,41 @@ button kbd {
 }
 
 .piece-menu {
+  position: fixed;
+  top: 64px;
+  right: 10px;
+  left: auto;
   min-width: 330px;
   max-width: min(360px, calc(100vw - 24px));
-  max-height: min(68vh, calc(100vh - 150px));
+  max-height: calc(100dvh - 82px);
   padding-right: 8px;
+  z-index: 70;
 }
 
 .grading-menu {
+  position: fixed;
+  top: 64px;
+  right: 10px;
+  left: auto;
   min-width: 300px;
   max-width: min(340px, calc(100vw - 24px));
-  max-height: min(68vh, calc(100vh - 150px));
+  max-height: calc(100dvh - 82px);
   padding-right: 8px;
+  z-index: 70;
+}
+
+.piece-menu label,
+.grading-menu label {
+  gap: 4px;
+}
+
+.piece-menu input,
+.piece-menu select,
+.grading-menu input,
+.grading-menu select {
+  min-height: 30px;
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 
 .list-menu {

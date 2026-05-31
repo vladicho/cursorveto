@@ -119,7 +119,7 @@ const maximumCanvasSize = { width: 32000, height: 12000 };
 const view = { zoom: 1, panX: 0, panY: 0 };
 
 let mode = "move";
-let selectedId = "front";
+let selectedId = null;
 let selectedPointIndex = null;
 let dragState = null;
 let newPieceCount = 1;
@@ -147,105 +147,7 @@ let nestingPreview = null;
 let lastNestingStats = null;
 let lastNestingPlacedIds = null;
 
-const pieces = [
-  {
-    id: "front",
-    name: "Frente corpo",
-    model: "Base feminina",
-    size: "M",
-    x: 16,
-    y: 18,
-    rotation: 0,
-    grainAngle: 0,
-    mirrored: false,
-    color: "#0f766e",
-    points: [
-      [0, 10],
-      [12, 0],
-      [35, 3],
-      [45, 28],
-      [42, 78],
-      [6, 80],
-      [0, 54],
-    ],
-  },
-  {
-    id: "back",
-    name: "Costas corpo",
-    model: "Base feminina",
-    size: "M",
-    x: 64,
-    y: 20,
-    rotation: 0,
-    grainAngle: 0,
-    mirrored: false,
-    color: "#2563eb",
-    points: [
-      [0, 8],
-      [15, 0],
-      [38, 6],
-      [48, 35],
-      [43, 82],
-      [5, 78],
-      [0, 48],
-    ],
-  },
-  {
-    id: "sleeve",
-    name: "Manga",
-    model: "Base feminina",
-    size: "M",
-    x: 112,
-    y: 28,
-    rotation: 0,
-    grainAngle: 0,
-    mirrored: false,
-    color: "#9333ea",
-    points: [
-      [0, 18],
-      [22, 0],
-      [48, 18],
-      [43, 52],
-      [8, 54],
-    ],
-  },
-  {
-    id: "collar",
-    name: "Gola",
-    model: "Base feminina",
-    size: "M",
-    x: 24,
-    y: 110,
-    rotation: 0,
-    grainAngle: 0,
-    mirrored: false,
-    color: "#ca8a04",
-    points: [
-      [0, 0],
-      [64, 0],
-      [68, 15],
-      [5, 18],
-    ],
-  },
-  {
-    id: "waist",
-    name: "Cos",
-    model: "Base feminina",
-    size: "M",
-    x: 94,
-    y: 118,
-    rotation: 0,
-    grainAngle: 0,
-    mirrored: false,
-    color: "#dc2626",
-    points: [
-      [0, 0],
-      [72, 0],
-      [72, 16],
-      [0, 16],
-    ],
-  },
-];
+const pieces = [];
 
 const gradingCopyColors = ["#dc2626", "#2563eb", "#16a34a", "#9333ea", "#ca8a04", "#0891b2"];
 
