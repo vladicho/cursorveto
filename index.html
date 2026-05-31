@@ -233,24 +233,16 @@
                 </div>
                 <div class="status-line">Use Modo &gt; Pontos, selecione um ponto e mova em centimetros.</div>
                 <div class="menu-divider"></div>
-                <div class="selected-name">Graduacao automatica</div>
+                <div class="selected-name">Copiar para graduar</div>
                 <label>
-                  Tamanhos
-                  <input id="autoGradeSizes" type="text" value="PP,P,M,G,GG" />
+                  Tamanho da copia
+                  <input id="gradeCopySize" type="text" value="G" />
                 </label>
                 <label>
-                  Aumento largura por tamanho (cm)
-                  <input id="autoGradeWidth" type="number" min="0" max="20" step="0.1" value="2" />
+                  Cor da copia
+                  <input id="gradeCopyColor" type="color" value="#dc2626" />
                 </label>
-                <label>
-                  Aumento altura por tamanho (cm)
-                  <input id="autoGradeHeight" type="number" min="0" max="20" step="0.1" value="1.5" />
-                </label>
-                <label>
-                  Espaco entre copias (cm)
-                  <input id="autoGradeGap" type="number" min="1" max="80" step="1" value="10" />
-                </label>
-                <button id="autoGradePiece" type="button"><i data-lucide="sparkles"></i><span>Gerar grade automatica</span></button>
+                <button id="createGradeCopy" type="button"><i data-lucide="layers-2"></i><span>Graduar copia sobreposta</span></button>
               </div>
             </details>
             <details class="menu-dropdown">
@@ -315,6 +307,7 @@
             <button data-float-action="points" title="Pontos"><i data-lucide="mouse-pointer-2"></i><span>Pontos</span></button>
             <button data-float-action="copy" title="Copiar"><i data-lucide="copy"></i><span>Copiar</span></button>
             <button data-float-action="duplicate" title="Duplicar"><i data-lucide="clipboard-copy"></i><span>Duplicar</span></button>
+            <button data-float-action="grade-copy" title="Graduar copia sobreposta"><i data-lucide="layers-2"></i><span>Graduar</span></button>
             <button data-float-action="lock" title="Bloquear"><i data-lucide="lock"></i><span>Bloquear</span></button>
             <button data-float-action="rotate-left" title="Girar esquerda"><i data-lucide="rotate-ccw"></i><span>Girar esquerda</span></button>
             <button data-float-action="rotate-right" title="Girar direita"><i data-lucide="rotate-cw"></i><span>Girar direita</span></button>
@@ -328,6 +321,7 @@
         <div id="pieceContextMenu" class="context-menu" hidden>
           <button data-context-action="duplicate"><i data-lucide="copy"></i><span>Duplicar peca</span></button>
           <button data-context-action="copy"><i data-lucide="clipboard-copy"></i><span>Copiar peca</span></button>
+          <button data-context-action="grade-copy"><i data-lucide="layers-2"></i><span>Graduar copia</span></button>
           <button data-context-action="delete"><i data-lucide="trash-2"></i><span>Apagar peca</span></button>
           <button data-context-action="lock"><i data-lucide="lock"></i><span>Bloquear peca</span></button>
           <button data-context-action="rotate-left"><i data-lucide="rotate-ccw"></i><span>Girar -15 graus</span></button>

@@ -81,11 +81,9 @@ const ui = {
   gradeDown: document.querySelector("#gradeDown"),
   gradeLeft: document.querySelector("#gradeLeft"),
   gradeRight: document.querySelector("#gradeRight"),
-  autoGradeSizes: document.querySelector("#autoGradeSizes"),
-  autoGradeWidth: document.querySelector("#autoGradeWidth"),
-  autoGradeHeight: document.querySelector("#autoGradeHeight"),
-  autoGradeGap: document.querySelector("#autoGradeGap"),
-  autoGradePiece: document.querySelector("#autoGradePiece"),
+  gradeCopySize: document.querySelector("#gradeCopySize"),
+  gradeCopyColor: document.querySelector("#gradeCopyColor"),
+  createGradeCopy: document.querySelector("#createGradeCopy"),
   rotation: document.querySelector("#rotation"),
   grainAngle: document.querySelector("#grainAngle"),
   selectionName: document.querySelector("#selectionName"),
@@ -246,6 +244,8 @@ const pieces = [
     ],
   },
 ];
+
+const gradingCopyColors = ["#dc2626", "#2563eb", "#16a34a", "#9333ea", "#ca8a04", "#0891b2"];
 
 function selectedPiece() {
   return pieces.find((piece) => piece.id === selectedId);
@@ -1039,6 +1039,14 @@ function safePieceColor(value) {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : "#475569";
 }
 
+function nextGradingColor(sourceColor) {
+  const usedColors = new Set(pieces.map((piece) => safePieceColor(piece.color).toLowerCase()));
+  const source = safePieceColor(sourceColor).toLowerCase();
+  return gradingCopyColors.find((color) => color.toLowerCase() !== source && !usedColors.has(color.toLowerCase()))
+    || gradingCopyColors.find((color) => color.toLowerCase() !== source)
+    || "#dc2626";
+}
+
 function iconButtonMarkup(icon, label) {
   return `<i data-lucide="${icon}"></i><span>${label}</span>`;
 }
@@ -1086,7 +1094,7 @@ function updatePieceContextMenu() {
   const lockButton = ui.pieceContextMenu.querySelector('[data-context-action="lock"]');
   const pointButtons = ui.pieceContextMenu.querySelectorAll('[data-context-action="add-notch"], [data-context-action="delete-notch"], [data-context-action="delete-point"]');
   const lockedButtons = ui.pieceContextMenu.querySelectorAll(
-    '[data-context-action="delete"], [data-context-action="rotate-left"], [data-context-action="rotate-right"], [data-context-action="mirror"], [data-context-action="origin"], [data-context-action="center-width"], [data-context-action="left"], [data-context-action="top"]',
+    '[data-context-action="delete"], [data-context-action="grade-copy"], [data-context-action="rotate-left"], [data-context-action="rotate-right"], [data-context-action="mirror"], [data-context-action="origin"], [data-context-action="center-width"], [data-context-action="left"], [data-context-action="top"]',
   );
   if (!piece || !lockButton) return;
   lockButton.innerHTML = piece.locked
@@ -1202,10 +1210,10 @@ function updateFloatingToolbar() {
   toolbar.style.left = `${Math.max(10, Math.min(rawLeft, maxLeft))}px`;
   toolbar.style.top = `${Math.max(10, Math.min(rawTop, maxTop))}px`;
 
-  toolbar.querySelectorAll('[data-float-action="duplicate"], [data-float-action="rotate-left"], [data-float-action="rotate-right"], [data-float-action="mirror"], [data-float-action^="grade-"]').forEach((button) => {
+  toolbar.querySelectorAll('[data-float-action="duplicate"], [data-float-action="grade-copy"], [data-float-action="rotate-left"], [data-float-action="rotate-right"], [data-float-action="mirror"], [data-float-action^="grade-"]').forEach((button) => {
     button.disabled = piece.locked;
   });
-  toolbar.querySelectorAll('[data-float-action^="grade-"]').forEach((button) => {
+  toolbar.querySelectorAll('[data-float-action="grade-left"], [data-float-action="grade-right"], [data-float-action="grade-up"], [data-float-action="grade-down"]').forEach((button) => {
     button.disabled = piece.locked || selectedPointIndex === null;
   });
   const lockButton = toolbar.querySelector('[data-float-action="lock"]');
@@ -2802,90 +2810,48 @@ function gradeSelectedPoint(deltaX, deltaY) {
   draw();
 }
 
-function parseAutoGradeSizes() {
-  return ui.autoGradeSizes.value
-    .split(",")
-    .map((size) => size.trim())
-    .filter(Boolean)
-    .filter((size, index, allSizes) => allSizes.indexOf(size) === index);
-}
-
-function autoGradeSelectedPiece() {
+function createGradingCopy() {
   const source = selectedPiece();
   if (!source) {
-    updateImportStatus("Selecione uma peca para graduar automaticamente.");
+    updateImportStatus("Selecione uma peca para criar a copia de graduacao.");
     return;
   }
   if (source.locked) {
-    updateImportStatus("Desbloqueie a peca antes de graduar automaticamente.");
+    updateImportStatus("Desbloqueie a peca antes de criar a copia de graduacao.");
     return;
   }
 
-  const sizes = parseAutoGradeSizes();
-  if (sizes.length < 2) {
-    updateImportStatus("Informe pelo menos dois tamanhos separados por virgula.");
-    return;
-  }
-
-  const sourceSize = String(source.size || "").trim();
-  const baseIndex = Math.max(0, sizes.indexOf(sourceSize));
-  const widthStep = Math.max(0, Number(ui.autoGradeWidth.value) || 0);
-  const heightStep = Math.max(0, Number(ui.autoGradeHeight.value) || 0);
-  const gap = Math.max(1, Number(ui.autoGradeGap.value) || 10);
-  if (widthStep === 0 && heightStep === 0) {
-    updateImportStatus("Ajuste largura ou altura para gerar a graduacao automatica.");
-    return;
-  }
-
-  const sourceBox = bounds(source.points);
-  const sourceWidth = Math.max(0.1, sourceBox.maxX - sourceBox.minX);
-  const sourceHeight = Math.max(0.1, sourceBox.maxY - sourceBox.minY);
-  const center = centroid(source.points);
   const existingIds = new Set(pieces.map((piece) => piece.id));
-  const copyWidth = sourceWidth + widthStep * Math.max(1, sizes.length - 1);
-  let created = 0;
+  const copySize = ui.gradeCopySize.value.trim() || `${source.size || "Grade"}+`;
+  const safeSizeId = copySize.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "copia";
+  let id = `grade-${source.id}-${safeSizeId}`;
+  let suffix = 2;
+  while (existingIds.has(id)) {
+    id = `grade-${source.id}-${safeSizeId}-${suffix}`;
+    suffix += 1;
+  }
 
+  const requestedColor = safePieceColor(ui.gradeCopyColor.value || nextGradingColor(source.color));
+  const copyColor = requestedColor.toLowerCase() === safePieceColor(source.color).toLowerCase()
+    ? nextGradingColor(source.color)
+    : requestedColor;
   recordHistory();
-  sizes.forEach((size, sizeIndex) => {
-    if (sizeIndex === baseIndex && sourceSize === size) {
-      source.size = size;
-      return;
-    }
-
-    const gradeOffset = sizeIndex - baseIndex;
-    const nextWidth = Math.max(0.1, sourceWidth + widthStep * gradeOffset);
-    const nextHeight = Math.max(0.1, sourceHeight + heightStep * gradeOffset);
-    const scaleX = nextWidth / sourceWidth;
-    const scaleY = nextHeight / sourceHeight;
-    let id = `grade-${source.id}-${size.toLowerCase().replace(/[^a-z0-9]+/g, "-") || sizeIndex}`;
-    let suffix = 2;
-    while (existingIds.has(id)) {
-      id = `grade-${source.id}-${size.toLowerCase().replace(/[^a-z0-9]+/g, "-") || sizeIndex}-${suffix}`;
-      suffix += 1;
-    }
-    existingIds.add(id);
-
-    pieces.push({
-      ...source,
-      id,
-      name: `${source.name} ${size}`,
-      size,
-      x: source.x + (created + 1) * (copyWidth + gap),
-      y: source.y,
-      locked: false,
-      points: source.points.map(([x, y]) => [
-        center[0] + (x - center[0]) * scaleX,
-        center[1] + (y - center[1]) * scaleY,
-      ]),
-      notches: [...(source.notches || [])],
-    });
-    created += 1;
+  pieces.push({
+    ...source,
+    id,
+    name: `${source.name} ${copySize}`,
+    size: copySize,
+    color: copyColor,
+    locked: false,
+    points: source.points.map(([x, y]) => [x, y]),
+    notches: [...(source.notches || [])],
   });
 
-  selectedId = source.id;
+  selectedId = id;
   selectedPointIndex = null;
-  mode = "move";
-  updateImportStatus(`Graduacao automatica criada: ${created} copias a partir de ${source.name}.`);
+  mode = "points";
+  ui.gradeCopyColor.value = nextGradingColor(copyColor);
+  updateImportStatus(`Copia de graduacao criada sobre ${source.name}. Selecione os pontos e estique com as setas.`);
   draw();
 }
 
@@ -2895,6 +2861,7 @@ function handleFloatingToolbarAction(action) {
     points: () => ui.modePoints.click(),
     copy: () => ui.copyPiece.click(),
     duplicate: () => ui.duplicatePiece.click(),
+    "grade-copy": () => ui.createGradeCopy.click(),
     lock: () => ui.toggleLockPiece.click(),
     "rotate-left": () => ui.rotateLeft.click(),
     "rotate-right": () => ui.rotateRight.click(),
@@ -4130,7 +4097,7 @@ ui.gradeUp.addEventListener("click", () => gradeSelectedPoint(0, -1));
 ui.gradeDown.addEventListener("click", () => gradeSelectedPoint(0, 1));
 ui.gradeLeft.addEventListener("click", () => gradeSelectedPoint(-1, 0));
 ui.gradeRight.addEventListener("click", () => gradeSelectedPoint(1, 0));
-ui.autoGradePiece.addEventListener("click", autoGradeSelectedPiece);
+ui.createGradeCopy.addEventListener("click", createGradingCopy);
 ui.projectName.addEventListener("input", () => updateMarkerHeader(currentMarkerStats()));
 ui.pieceName.addEventListener("change", renameSelectedPiece);
 ui.pieceModel.addEventListener("change", () => updateSelectedPieceMeta("model", ui.pieceModel));
@@ -4227,6 +4194,7 @@ ui.pieceContextMenu.addEventListener("click", (event) => {
   const actions = {
     duplicate: () => ui.duplicatePiece.click(),
     copy: () => ui.copyPiece.click(),
+    "grade-copy": () => ui.createGradeCopy.click(),
     delete: () => ui.deletePiece.click(),
     lock: () => ui.toggleLockPiece.click(),
     "rotate-left": () => ui.rotateLeft.click(),
