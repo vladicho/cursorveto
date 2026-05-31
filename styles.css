@@ -977,3 +977,387 @@ canvas {
   padding: 1px 5px;
   background: #f4f6f2;
 }
+
+.video-shell {
+  width: min(1180px, calc(100vw - 28px));
+  margin: 0 auto;
+  padding: 28px 0 48px;
+}
+
+.video-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.video-header > div {
+  flex: 1 1 420px;
+}
+
+.video-header h1 {
+  font-size: 32px;
+}
+
+.video-header p {
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.video-stage {
+  display: grid;
+  gap: 14px;
+}
+
+.video-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: white;
+  box-shadow: 0 14px 35px rgba(29, 36, 36, 0.08);
+}
+
+.mock-app {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f9fbf7;
+}
+
+.mock-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px;
+  background: #fbfcfa;
+}
+
+.mock-brand {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-weight: 800;
+}
+
+.mock-tab {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 9px;
+  background: white;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mock-tab.active {
+  border-color: var(--accent);
+  background: #e4f3ee;
+  color: var(--accent-dark);
+}
+
+.mock-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 8px 10px;
+  background: #eef3ef;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mock-status b {
+  color: var(--ink);
+}
+
+.mock-canvas {
+  position: relative;
+  height: clamp(360px, 48vw, 560px);
+  background:
+    linear-gradient(#eef2ea 1px, transparent 1px),
+    linear-gradient(90deg, #eef2ea 1px, transparent 1px),
+    white;
+  background-size: 32px 32px;
+}
+
+.mock-fabric {
+  position: absolute;
+  inset: 48px 42px 54px 42px;
+  border: 2px solid #94a3a0;
+  background: rgba(236, 246, 241, 0.62);
+}
+
+.wide-fabric .mock-fabric {
+  top: 34px;
+  bottom: 34px;
+}
+
+.mock-piece,
+.mock-photo,
+.mock-marker,
+.mock-phone,
+.mock-scan-line,
+.mock-export {
+  position: absolute;
+  opacity: 0;
+  transition: opacity 280ms ease, transform 520ms ease, inset 520ms ease;
+}
+
+.mock-piece {
+  border: 3px solid #0891b2;
+  background: rgba(8, 145, 178, 0.12);
+  clip-path: polygon(18% 0, 74% 4%, 96% 38%, 82% 100%, 22% 92%, 0 42%);
+}
+
+.mock-piece::after {
+  content: "";
+  position: absolute;
+  inset: 12px 45% 12px auto;
+  border-left: 2px dashed rgba(8, 145, 178, 0.5);
+}
+
+.mock-piece-a {
+  width: 155px;
+  height: 210px;
+  left: 120px;
+  top: 118px;
+}
+
+.mock-piece-b {
+  width: 118px;
+  height: 172px;
+  left: 345px;
+  top: 186px;
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.mock-piece-c {
+  width: 96px;
+  height: 150px;
+  left: 535px;
+  top: 132px;
+  border-color: #16a34a;
+  background: rgba(22, 163, 74, 0.11);
+}
+
+.show-pieces .mock-piece,
+.show-piece-a .mock-piece-a {
+  opacity: 1;
+}
+
+.nested .mock-piece-a {
+  transform: translate(10px, -32px) rotate(90deg);
+}
+
+.nested .mock-piece-b {
+  transform: translate(-42px, -86px) rotate(180deg);
+}
+
+.nested .mock-piece-c {
+  transform: translate(-118px, 116px) rotate(90deg);
+}
+
+.edit-points .mock-piece-a {
+  box-shadow: 0 0 0 6px rgba(8, 145, 178, 0.1);
+}
+
+.edit-points .mock-piece-a::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  background:
+    radial-gradient(circle at 18% 4%, #111827 0 4px, transparent 5px),
+    radial-gradient(circle at 74% 8%, #111827 0 4px, transparent 5px),
+    radial-gradient(circle at 94% 38%, #111827 0 4px, transparent 5px),
+    radial-gradient(circle at 80% 96%, #111827 0 4px, transparent 5px),
+    radial-gradient(circle at 22% 90%, #111827 0 4px, transparent 5px);
+}
+
+.mock-photo {
+  width: 300px;
+  height: 220px;
+  left: 140px;
+  top: 110px;
+  border: 8px solid white;
+  background:
+    radial-gradient(circle at 72% 28%, #111827 0 13px, transparent 14px),
+    linear-gradient(135deg, rgba(8, 145, 178, 0.32), rgba(22, 163, 74, 0.18)),
+    #dfe7df;
+  box-shadow: 0 18px 45px rgba(17, 24, 39, 0.18);
+}
+
+.show-photo .mock-photo {
+  opacity: 1;
+}
+
+.mock-marker {
+  width: 42px;
+  height: 42px;
+  left: 350px;
+  top: 140px;
+  border: 6px solid #111827;
+  background:
+    linear-gradient(90deg, #111827 25%, transparent 25% 50%, #111827 50% 75%, transparent 75%),
+    linear-gradient(#111827 25%, white 25% 50%, #111827 50% 75%, white 75%);
+}
+
+.show-marker .mock-marker {
+  opacity: 1;
+  transform: scale(1.18);
+}
+
+.mock-phone {
+  right: 86px;
+  top: 96px;
+  width: 76px;
+  height: 142px;
+  border: 5px solid #111827;
+  border-radius: 16px;
+  background: #d9f1e9;
+}
+
+.mock-phone::after {
+  content: "";
+  position: absolute;
+  inset: 26px 10px;
+  border: 2px dashed var(--accent);
+}
+
+.show-phone .mock-phone {
+  opacity: 1;
+}
+
+.mock-scan-line {
+  left: 138px;
+  top: 120px;
+  width: 304px;
+  height: 4px;
+  background: #ef4444;
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.75);
+}
+
+.show-scan .mock-scan-line {
+  opacity: 1;
+  animation: scanSweep 1.8s ease-in-out infinite alternate;
+}
+
+.mock-export {
+  right: 94px;
+  bottom: 76px;
+  width: 144px;
+  height: 108px;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.15);
+}
+
+.mock-export::before {
+  content: "SVG  DXF  PLT";
+  position: absolute;
+  inset: 16px;
+  color: var(--accent-dark);
+  font-weight: 800;
+  line-height: 1.8;
+}
+
+.show-export .mock-export {
+  opacity: 1;
+  transform: translateY(-14px);
+}
+
+@keyframes scanSweep {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(180px);
+  }
+}
+
+.video-caption {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 20px;
+  background: #0f172a;
+  color: white;
+}
+
+.video-caption span {
+  color: #93c5fd;
+  font-weight: 800;
+}
+
+.video-caption h2 {
+  font-size: 25px;
+}
+
+.video-caption p {
+  color: #dbeafe;
+  line-height: 1.5;
+}
+
+.video-progress {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: #d8e1dc;
+}
+
+.video-progress span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 320ms ease;
+}
+
+.video-controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.video-chapters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.video-chapters button {
+  height: auto;
+  min-height: 44px;
+  justify-content: flex-start;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.video-chapters button.active {
+  border-color: var(--accent);
+  background: #e4f3ee;
+  color: var(--accent-dark);
+}
+
+@media (max-width: 860px) {
+  .video-frame {
+    grid-template-columns: 1fr;
+  }
+
+  .video-chapters {
+    grid-template-columns: 1fr 1fr;
+  }
+}

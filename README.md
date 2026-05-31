@@ -176,6 +176,7 @@ em servicos ja existentes, altere em Environment no dashboard.
 ```text
 index.html             Interface principal
 tutorial.html          Tutorial de uso dentro do app
+tutorial-video.html    Video tutorial interativo dentro do app
 styles.css             Estilos
 app.js                 Editor, nesting, digitalizacao e importadores
 scanner-server.js      Servidor local HTTP/WebSocket para scanner via celular
