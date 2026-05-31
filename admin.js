@@ -19,15 +19,19 @@ function statusLabel(status) {
 function renderUserCard(user, container) {
   const card = document.createElement("article");
   card.className = "admin-user-card";
-  card.innerHTML = `
-    <div>
-      <strong>${user.name}</strong>
-      <div class="admin-user-meta">${user.email}</div>
-      <div class="admin-user-meta">${statusLabel(user.status)} · ${user.role}</div>
-    </div>
-    <div class="admin-user-buttons"></div>
-  `;
-  const buttons = card.querySelector(".admin-user-buttons");
+  const info = document.createElement("div");
+  const name = document.createElement("strong");
+  const email = document.createElement("div");
+  const meta = document.createElement("div");
+  const buttons = document.createElement("div");
+  email.className = "admin-user-meta";
+  meta.className = "admin-user-meta";
+  buttons.className = "admin-user-buttons";
+  name.textContent = user.name;
+  email.textContent = user.email;
+  meta.textContent = `${statusLabel(user.status)} · ${user.role}`;
+  info.append(name, email, meta);
+  card.append(info, buttons);
   if (user.status === "pending") {
     const approve = document.createElement("button");
     approve.type = "button";

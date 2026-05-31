@@ -157,6 +157,14 @@ O deploy atual usa `plan: free` e pula login com `MOLDELAB_AUTH_DISABLED=1`,
 entao o editor fica aberto para quem tiver a URL. Para religar autenticacao,
 remova essa variavel ou mude o valor para `0` no Render.
 
+Para proteger o site mesmo com o login do app desligado, defina no Render:
+
+- `MOLDELAB_BASIC_AUTH_USER`
+- `MOLDELAB_BASIC_AUTH_PASSWORD`
+
+Quando essas duas variaveis existem, o navegador pede usuario e senha antes de
+abrir qualquer tela do MoldeLab.
+
 No plano gratuito do Render, o filesystem e temporario entre restarts e
 redeploys. Se a autenticacao for religada em producao, use um servico pago com
 disco persistente ou um banco externo para manter `users.json`.

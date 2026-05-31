@@ -53,6 +53,14 @@ def contour_points(mask, max_points):
     return [{"x": float(col), "y": float(row)} for row, col in simplified]
 
 
+def authorized_request():
+    expected = os.environ.get("SKIMAGE_SHARED_SECRET", "")
+    if not expected:
+        return True
+    provided = request.headers.get("X-MoldeLab-Secret", "")
+    return provided == expected
+
+
 @app.get("/health")
 def health():
     return jsonify(ok=True)
@@ -60,6 +68,8 @@ def health():
 
 @app.post("/digitize/scikit")
 def digitize_scikit():
+    if not authorized_request():
+        return jsonify(ok=False, error="Nao autorizado."), 401
     try:
         payload = request.get_json(force=True)
         max_points = int(payload.get("maxPoints", 220))

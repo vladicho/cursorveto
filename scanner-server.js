@@ -22,6 +22,8 @@ let activePort = requestedPort;
 const desktops = new Set();
 const mobiles = new Set();
 const latestFramesByUser = new Map();
+const basicAuthUser = process.env.MOLDELAB_BASIC_AUTH_USER || "";
+const basicAuthPassword = process.env.MOLDELAB_BASIC_AUTH_PASSWORD || "";
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -32,6 +34,54 @@ const mimeTypes = {
   ".jpg": "image/jpeg",
   ".png": "image/png",
 };
+
+function timingSafeEqualText(a, b) {
+  const left = Buffer.from(String(a || ""));
+  const right = Buffer.from(String(b || ""));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function isBasicAuthEnabled() {
+  return Boolean(basicAuthUser && basicAuthPassword);
+}
+
+function allowBasicAuth(request, response, url) {
+  if (!isBasicAuthEnabled()) return true;
+  if (url.pathname === "/health") return true;
+
+  const header = request.headers.authorization || "";
+  if (header.startsWith("Basic ")) {
+    try {
+      const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+      const separator = decoded.indexOf(":");
+      const user = separator >= 0 ? decoded.slice(0, separator) : "";
+      const password = separator >= 0 ? decoded.slice(separator + 1) : "";
+      if (timingSafeEqualText(user, basicAuthUser) && timingSafeEqualText(password, basicAuthPassword)) return true;
+    } catch {
+      // Fall through to challenge.
+    }
+  }
+
+  response.writeHead(401, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "WWW-Authenticate": 'Basic realm="MoldeLab", charset="UTF-8"',
+    "Cache-Control": "no-store",
+  });
+  response.end("Autenticacao necessaria.");
+  return false;
+}
+
+function securityHeaders(contentType) {
+  const headers = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "same-origin",
+    "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(self), microphone=(), geolocation=()",
+    "Cache-Control": contentType?.startsWith("text/html") ? "no-store" : "public, max-age=3600",
+  };
+  if (contentType) headers["Content-Type"] = contentType;
+  return headers;
+}
 
 function localAddress() {
   const interfaces = os.networkInterfaces();
@@ -114,7 +164,10 @@ async function handleScikitDigitize(request, response) {
     const body = await readBody(request, 22_000_000);
     const upstream = await fetch(`${serviceUrl.replace(/\/$/, "")}/digitize/scikit`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(process.env.SKIMAGE_SHARED_SECRET ? { "X-MoldeLab-Secret": process.env.SKIMAGE_SHARED_SECRET } : {}),
+      },
       body,
     });
     const text = await upstream.text();
@@ -459,10 +512,11 @@ function acceptWebSocket(request, socket, role, userId) {
 
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
+  if (!allowBasicAuth(request, response, url)) return;
   if (auth.handleAuthApi(request, response, url)) return;
 
   if (url.pathname === "/api/health.json" && request.method === "GET") {
-    response.writeHead(200, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
+    response.writeHead(200, securityHeaders(mimeTypes[".json"]));
     let build = null;
     try {
       build = JSON.parse(fs.readFileSync(path.join(root, "build.json"), "utf8"));
@@ -481,7 +535,7 @@ const server = http.createServer((request, response) => {
   }
 
   if (url.pathname === "/health" && request.method === "GET") {
-    response.writeHead(200, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
+    response.writeHead(200, securityHeaders(mimeTypes[".json"]));
     response.end(JSON.stringify({ ok: true }));
     return;
   }
@@ -523,7 +577,7 @@ const server = http.createServer((request, response) => {
       denyScanner(response);
       return;
     }
-    response.writeHead(200, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
+    response.writeHead(200, securityHeaders(mimeTypes[".json"]));
     response.end(JSON.stringify({ ok: true, frame: latestFramesByUser.get(approved.id) || null }));
     return;
   }
@@ -532,7 +586,7 @@ const server = http.createServer((request, response) => {
       denyScanner(response);
       return;
     }
-    response.writeHead(200, { "Content-Type": mimeTypes[".json"] });
+    response.writeHead(200, securityHeaders(mimeTypes[".json"]));
     response.end(JSON.stringify({ mobileUrl: mobileUrl(request), qrUrl: "/scanner-qr.svg" }));
     return;
   }
@@ -542,7 +596,7 @@ const server = http.createServer((request, response) => {
       return;
     }
     const link = mobileUrl(request);
-    response.writeHead(200, { "Content-Type": mimeTypes[".svg"], "Cache-Control": "no-store" });
+    response.writeHead(200, securityHeaders(mimeTypes[".svg"]));
     response.end(qrSvg(link));
     return;
   }
@@ -581,9 +635,7 @@ const server = http.createServer((request, response) => {
     }
     const ext = path.extname(filePath).toLowerCase();
     const headers = {
-      "Content-Type": mimeTypes[ext] || "application/octet-stream",
-      "X-Content-Type-Options": "nosniff",
-      "Cache-Control": ext === ".html" ? "no-store" : "public, max-age=3600",
+      ...securityHeaders(mimeTypes[ext] || "application/octet-stream"),
     };
     if (ext === ".js") headers["Cache-Control"] = "no-cache";
     response.writeHead(200, headers);

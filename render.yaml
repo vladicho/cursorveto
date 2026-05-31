@@ -13,11 +13,16 @@ services:
         value: "22"
       - key: MOLDELAB_AUTH_DISABLED
         value: "1"
+      - key: MOLDELAB_BASIC_AUTH_USER
+        sync: false
+      - key: MOLDELAB_BASIC_AUTH_PASSWORD
+        sync: false
       - key: SKIMAGE_SERVICE_URL
         fromService:
           type: web
           name: moldelab-skimage
           property: hostport
+      - fromGroup: moldelab-shared-security
       - key: MOLDELAB_JWT_SECRET
         generateValue: true
       - key: MOLDELAB_BOOTSTRAP_EMAIL
@@ -32,3 +37,10 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     healthCheckPath: /health
+    envVars:
+      - fromGroup: moldelab-shared-security
+envVarGroups:
+  - name: moldelab-shared-security
+    envVars:
+      - key: SKIMAGE_SHARED_SECRET
+        generateValue: true
