@@ -159,6 +159,11 @@ No plano gratuito do Render, o filesystem e temporario entre restarts e
 redeploys. Se a autenticacao for religada em producao, use um servico pago com
 disco persistente ou um banco externo para manter `users.json`.
 
+O modo `scikit-image` usa um microservico Python separado (`moldelab-skimage`)
+definido no mesmo `render.yaml`. O app Node envia a imagem para
+`/api/digitize/scikit`, faz proxy para o microservico e recebe o contorno real
+gerado com `scikit-image`.
+
 Defina manualmente no painel do Render as variaveis secretas
 `MOLDELAB_BOOTSTRAP_EMAIL` e `MOLDELAB_BOOTSTRAP_PASSWORD`. Como elas usam
 `sync: false`, o Render so pede esses valores na criacao inicial via Blueprint;

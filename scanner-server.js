@@ -77,6 +77,55 @@ function denyScanner(response) {
   response.end("Scanner requer login no MoldeLab ou QR valido.");
 }
 
+function sendJson(response, statusCode, payload) {
+  if (response.writableEnded || response.headersSent) return;
+  response.writeHead(statusCode, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
+  response.end(JSON.stringify(payload));
+}
+
+function readBody(request, limitBytes = 18_000_000) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk;
+      if (Buffer.byteLength(body) > limitBytes) {
+        reject(new Error("payload too large"));
+        request.destroy();
+      }
+    });
+    request.on("end", () => resolve(body));
+    request.on("error", reject);
+  });
+}
+
+async function handleScikitDigitize(request, response) {
+  if (request.method !== "POST") {
+    sendJson(response, 405, { ok: false, error: "Metodo nao permitido." });
+    return;
+  }
+
+  const configuredUrl = process.env.SKIMAGE_SERVICE_URL || "";
+  if (!configuredUrl) {
+    sendJson(response, 503, { ok: false, error: "Microservico scikit-image nao configurado." });
+    return;
+  }
+
+  try {
+    const serviceUrl = configuredUrl.startsWith("http") ? configuredUrl : `http://${configuredUrl}`;
+    const body = await readBody(request, 22_000_000);
+    const upstream = await fetch(`${serviceUrl.replace(/\/$/, "")}/digitize/scikit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    const text = await upstream.text();
+    response.writeHead(upstream.status, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
+    response.end(text || JSON.stringify({ ok: upstream.ok }));
+  } catch (error) {
+    sendJson(response, 502, { ok: false, error: `Falha no microservico scikit-image: ${error.message}` });
+  }
+}
+
 function qrSvg(text) {
   const version = 4;
   const size = 17 + version * 4;
@@ -435,6 +484,11 @@ const server = http.createServer((request, response) => {
   if (url.pathname === "/health" && request.method === "GET") {
     response.writeHead(200, { "Content-Type": mimeTypes[".json"], "Cache-Control": "no-store" });
     response.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  if (url.pathname === "/api/digitize/scikit") {
+    handleScikitDigitize(request, response);
     return;
   }
 

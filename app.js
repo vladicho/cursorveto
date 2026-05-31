@@ -3526,7 +3526,40 @@ function calibrateWithArucoMarker(showOnly = false) {
   return true;
 }
 
-function traceImageContour() {
+async function traceWithScikitService() {
+  const width = Math.min(1600, backgroundImage.width);
+  const height = Math.max(1, Math.round(width * (backgroundImage.height / backgroundImage.width)));
+  const uploadCanvas = document.createElement("canvas");
+  uploadCanvas.width = width;
+  uploadCanvas.height = height;
+  const uploadCtx = uploadCanvas.getContext("2d");
+  uploadCtx.drawImage(backgroundImage, 0, 0, width, height);
+  updateDigitizeStatus("Enviando imagem para o microservico scikit-image...");
+
+  const response = await fetch("/api/digitize/scikit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ dataUrl: uploadCanvas.toDataURL("image/jpeg", 0.9), maxPoints: 220 }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok || !Array.isArray(payload.points)) {
+    throw new Error(payload.error || "Microservico scikit-image indisponivel.");
+  }
+
+  const tracedPoints = payload.points.map(({ x, y }) => [
+    background.x + (x / payload.width) * background.widthCm,
+    background.y + (y / payload.height) * background.heightCm,
+  ]);
+  if (tracedPoints.length < 12) throw new Error("Contorno scikit-image incompleto.");
+
+  contourPoints = tracedPoints;
+  mode = "trace";
+  finishTrace();
+  updateDigitizeStatus(`Auto digitalizacao scikit-image real criada com ${tracedPoints.length} pontos.`);
+  return true;
+}
+
+async function traceImageContour() {
   if (!backgroundImage || !background) {
     updateDigitizeStatus("Importe uma imagem antes de auto digitalizar.");
     return;
@@ -3534,6 +3567,14 @@ function traceImageContour() {
 
   const engine = ui.digitizeEngine.value || "local";
   if (engine === "aruco" && !calibrateWithArucoMarker(false)) return;
+  if (engine === "scikit") {
+    try {
+      await traceWithScikitService();
+      return;
+    } catch (error) {
+      updateDigitizeStatus(`${error.message} Usando fallback local.`);
+    }
+  }
 
   const maxSize = 640;
   const scale = Math.min(1, maxSize / Math.max(backgroundImage.width, backgroundImage.height));

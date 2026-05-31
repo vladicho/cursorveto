@@ -13,9 +13,22 @@ services:
         value: "22"
       - key: MOLDELAB_AUTH_DISABLED
         value: "1"
+      - key: SKIMAGE_SERVICE_URL
+        fromService:
+          type: web
+          name: moldelab-skimage
+          property: hostport
       - key: MOLDELAB_JWT_SECRET
         generateValue: true
       - key: MOLDELAB_BOOTSTRAP_EMAIL
         sync: false
       - key: MOLDELAB_BOOTSTRAP_PASSWORD
         sync: false
+  - type: web
+    name: moldelab-skimage
+    runtime: python
+    plan: free
+    rootDir: skimage-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /health

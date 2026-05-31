@@ -7,6 +7,8 @@ Desktop.ini
 
 # Dependencias futuras
 node_modules/
+__pycache__/
+*.pyc
 
 # Builds futuros
 dist/
