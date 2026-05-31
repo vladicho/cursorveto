@@ -484,6 +484,16 @@ button kbd {
   min-width: 300px;
 }
 
+.grading-pad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.grading-pad button {
+  width: 100%;
+}
+
 .menu-list .icon-action {
   width: 100%;
   justify-content: flex-start;

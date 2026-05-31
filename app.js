@@ -75,6 +75,11 @@ const ui = {
   addNotch: document.querySelector("#addNotch"),
   deleteNotch: document.querySelector("#deleteNotch"),
   deletePoint: document.querySelector("#deletePoint"),
+  gradingStep: document.querySelector("#gradingStep"),
+  gradeUp: document.querySelector("#gradeUp"),
+  gradeDown: document.querySelector("#gradeDown"),
+  gradeLeft: document.querySelector("#gradeLeft"),
+  gradeRight: document.querySelector("#gradeRight"),
   rotation: document.querySelector("#rotation"),
   grainAngle: document.querySelector("#grainAngle"),
   selectionName: document.querySelector("#selectionName"),
@@ -2725,6 +2730,29 @@ function deleteSelectedPoint() {
   draw();
 }
 
+function gradeSelectedPoint(deltaX, deltaY) {
+  const piece = selectedPiece();
+  if (!piece || selectedPointIndex === null) {
+    mode = "points";
+    updateImportStatus("Selecione um ponto no modo Pontos para graduar.");
+    draw();
+    return;
+  }
+  if (piece.locked) {
+    updateImportStatus("Desbloqueie a peca antes de graduar pontos.");
+    return;
+  }
+  const step = Math.max(0.1, Number(ui.gradingStep.value) || 0.5);
+  const worldPoint = transformedPoints(piece)[selectedPointIndex];
+  if (!worldPoint) return;
+  recordHistory();
+  const movedPoint = [worldPoint[0] + deltaX * step, worldPoint[1] + deltaY * step];
+  piece.points[selectedPointIndex] = inverseTransformedPoint(piece, movedPoint);
+  const direction = deltaX < 0 ? "esquerda" : deltaX > 0 ? "direita" : deltaY < 0 ? "cima" : "baixo";
+  updateImportStatus(`Graduacao manual: ponto ${selectedPointIndex + 1} movido ${step} cm para ${direction}.`);
+  draw();
+}
+
 function addNotchToSelectedPoint() {
   const piece = selectedPiece();
   if (!piece || selectedPointIndex === null) {
@@ -3938,6 +3966,10 @@ ui.toggleLockPiece.addEventListener("click", toggleSelectedPieceLock);
 ui.addNotch.addEventListener("click", addNotchToSelectedPoint);
 ui.deleteNotch.addEventListener("click", deleteNotchFromSelectedPoint);
 ui.deletePoint.addEventListener("click", deleteSelectedPoint);
+ui.gradeUp.addEventListener("click", () => gradeSelectedPoint(0, -1));
+ui.gradeDown.addEventListener("click", () => gradeSelectedPoint(0, 1));
+ui.gradeLeft.addEventListener("click", () => gradeSelectedPoint(-1, 0));
+ui.gradeRight.addEventListener("click", () => gradeSelectedPoint(1, 0));
 ui.projectName.addEventListener("input", () => updateMarkerHeader(currentMarkerStats()));
 ui.pieceName.addEventListener("change", renameSelectedPiece);
 ui.pieceModel.addEventListener("change", () => updateSelectedPieceMeta("model", ui.pieceModel));

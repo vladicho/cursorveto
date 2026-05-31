@@ -51,6 +51,19 @@ A peca vira um molde vetorial editavel.
 
 Tambem da para mover a peca inteira usando o modo **Mover**.
 
+## 4.1. Graduacao manual por botoes
+
+1. Duplique a peca base.
+2. Renomeie a copia com o novo tamanho.
+3. Abra **Modo > Pontos**.
+4. Selecione o ponto que precisa crescer ou reduzir.
+5. Abra **Peca**.
+6. Defina o **Passo graduacao (cm)**.
+7. Use **Cima**, **Baixo**, **Esquerda** ou **Direita** para mover o ponto.
+
+Essa ferramenta nao faz graduacao automatica. Ela ajuda a aplicar deslocamentos
+tecnicos ponto por ponto, mantendo o controle manual do molde.
+
 ## 5. Importar vetor
 
 1. Abra **Arquivo**.

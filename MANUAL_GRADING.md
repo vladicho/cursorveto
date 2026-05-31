@@ -1,45 +1,55 @@
-# Grade Manual de Tamanhos
+# Graduacao Manual de Tamanhos
 
-O MoldeLab nao tera ampliacao/reducao automatica como recurso principal.
+O MoldeLab nao promete graduacao automatica perfeita. Em modelagem de vestuario,
+cada regiao do molde pode crescer de forma diferente. Por isso, a abordagem e
+**graduacao manual assistida**.
 
-Se o usuario quiser criar uma grade de tamanhos, ele deve editar manualmente
-cada tamanho do molde e salvar o resultado. Isso evita prometer uma gradação
-automatica incorreta.
+## Ferramenta Atual
 
-## Regra de Produto
+No menu **Peca**, o usuario pode:
 
-```text
-Sem ampliacao/reducao automatica no MVP.
-```
+- selecionar um ponto no modo **Pontos**
+- escolher o **Passo graduacao (cm)**
+- mover o ponto para **cima**, **baixo**, **esquerda** ou **direita**
 
-Fluxo esperado:
+Esse fluxo replica a ideia de graduacao por deslocamento manual de pontos. O
+modelista continua decidindo quais pontos crescem e quanto crescem.
+
+## Fluxo Esperado
 
 ```text
 Criar tamanho base
 v
 Duplicar peca ou projeto
 v
-Editar pontos manualmente
+Renomear a copia com o novo tamanho
+v
+Selecionar pontos importantes
+v
+Aplicar deslocamentos manuais por direcao
 v
 Salvar tamanho
 v
-Repetir ate completar a grade requerida
+Repetir ate completar a grade
 ```
 
 ## Por Que Manual
 
-Em modelagem de vestuario, ampliar/reduzir nem sempre e proporcional. Cada
-regiao do molde pode exigir ajuste diferente. Por isso, no MVP o usuario deve
-ter controle manual sobre os pontos.
+Ampliar ou reduzir um molde raramente e proporcional em todos os pontos.
+Ombro, cava, lateral, cintura, barra e gancho podem exigir regras diferentes.
+A ferramenta ajuda a aplicar deslocamentos tecnicos, mas nao decide a regra pelo
+usuario.
 
-## O Que o Sistema Deve Apoiar
+## O Que o Sistema Apoia
 
 - duplicar peca
 - renomear peca com tamanho
-- editar pontos
+- editar pontos por arraste
+- editar pontos pelo teclado
+- editar pontos pelos botoes de graduacao
 - salvar projeto `.moldelab.json`
-- visualizar pecas/tamanhos lado a lado
-- encaixar as pecas criadas manualmente
+- visualizar pecas e tamanhos lado a lado
+- encaixar as pecas graduadas manualmente
 
 ## Exemplo
 
@@ -49,9 +59,9 @@ Short tamanho 40
 Short tamanho 42
 ```
 
-Cada tamanho pode ser uma peca editada e salva manualmente pelo usuario.
+Cada tamanho pode ser uma copia da peca base com pontos ajustados manualmente.
 
 ## Futuro
 
-Gradação automatica pode ser estudada depois, mas nao deve ser promessa inicial
-do produto.
+Uma tabela de regras por ponto pode ser estudada depois. O primeiro passo e
+garantir que o usuario tenha controle fino por direcao e por centimetro.
