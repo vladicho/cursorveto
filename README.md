@@ -147,6 +147,18 @@ Exportacao atual:
 Execute `abrir-moldelab.cmd` no Windows. Esse atalho inicia o servidor local e
 abre `http://localhost:8787`, necessario para o QR Code e o scanner pelo celular.
 
+## Deploy no Render
+
+O app salva usuarios em `users.json`. No Render, esse arquivo precisa ficar em
+um disco persistente, porque o filesystem comum do servico e temporario entre
+restarts e redeploys. O `render.yaml` monta um disco em `/var/data` e configura
+`MOLDELAB_DATA_DIR=/var/data/moldelab`.
+
+Defina manualmente no painel do Render as variaveis secretas
+`MOLDELAB_BOOTSTRAP_EMAIL` e `MOLDELAB_BOOTSTRAP_PASSWORD`. Como elas usam
+`sync: false`, o Render so pede esses valores na criacao inicial via Blueprint;
+em servicos ja existentes, altere em Environment no dashboard.
+
 ## Estrutura
 
 ```text

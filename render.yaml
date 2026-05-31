@@ -6,11 +6,17 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /health
+    disk:
+      name: moldelab-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
         value: "22"
+      - key: MOLDELAB_DATA_DIR
+        value: /var/data/moldelab
       - key: MOLDELAB_JWT_SECRET
         generateValue: true
       - key: MOLDELAB_BOOTSTRAP_EMAIL
