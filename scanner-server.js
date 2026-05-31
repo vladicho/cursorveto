@@ -16,7 +16,6 @@ if (isProductionHost && !distReady) {
 }
 
 const root = distReady ? distPath : __dirname;
-const sourceRoot = __dirname;
 const requestedPort = Number(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT || 8787);
 const fixedPort = Boolean(process.env.PORT || process.env.MOLDELAB_SCANNER_PORT);
 let activePort = requestedPort;
@@ -571,15 +570,6 @@ const server = http.createServer((request, response) => {
     response.writeHead(403);
     response.end("Forbidden");
     return;
-  }
-
-  if (root !== sourceRoot && ["/app.js", "/login.js", "/admin.js", "/mobile-scanner.js"].includes(requestedPath)) {
-    const sourceOnly = path.normalize(path.join(sourceRoot, requestedPath.slice(1)));
-    if (sourceOnly.startsWith(sourceRoot) && fs.existsSync(sourceOnly)) {
-      response.writeHead(404);
-      response.end("Not found");
-      return;
-    }
   }
 
   fs.readFile(filePath, (error, content) => {
