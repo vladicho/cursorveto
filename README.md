@@ -157,6 +157,10 @@ restarts e redeploys. Disco persistente exige web service pago, entao o
 `render.yaml` usa `plan: starter`, monta um disco em `/var/data` e configura
 `MOLDELAB_DATA_DIR=/var/data/moldelab`.
 
+O deploy atual pula login com `MOLDELAB_AUTH_DISABLED=1`, entao o editor fica
+aberto para quem tiver a URL. Para religar autenticacao, remova essa variavel
+ou mude o valor para `0` no Render.
+
 Defina manualmente no painel do Render as variaveis secretas
 `MOLDELAB_BOOTSTRAP_EMAIL` e `MOLDELAB_BOOTSTRAP_PASSWORD`. Como elas usam
 `sync: false`, o Render so pede esses valores na criacao inicial via Blueprint;
