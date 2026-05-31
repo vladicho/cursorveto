@@ -151,7 +151,8 @@ abre `http://localhost:8787`, necessario para o QR Code e o scanner pelo celular
 
 O app salva usuarios em `users.json`. No Render, esse arquivo precisa ficar em
 um disco persistente, porque o filesystem comum do servico e temporario entre
-restarts e redeploys. O `render.yaml` monta um disco em `/var/data` e configura
+restarts e redeploys. Disco persistente exige web service pago, entao o
+`render.yaml` usa `plan: starter`, monta um disco em `/var/data` e configura
 `MOLDELAB_DATA_DIR=/var/data/moldelab`.
 
 Defina manualmente no painel do Render as variaveis secretas
