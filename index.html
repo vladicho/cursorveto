@@ -219,6 +219,12 @@
                 <button id="addNotch"><i data-lucide="circle-plus"></i><span>Adicionar pique</span></button>
                 <button id="deleteNotch"><i data-lucide="circle-minus"></i><span>Apagar pique</span></button>
                 <button id="deletePoint"><i data-lucide="circle-x"></i><span>Apagar ponto</span><kbd>Del</kbd></button>
+              </div>
+            </details>
+            <details class="menu-dropdown">
+              <summary><i data-lucide="move-horizontal"></i><span>Graduacao</span></summary>
+              <div class="menu-list menu-form grading-menu">
+                <div class="selected-name">Mover ponto selecionado</div>
                 <label>
                   Passo graduacao (cm)
                   <input id="gradingStep" type="number" min="0.1" max="20" step="0.1" value="0.5" />
@@ -229,6 +235,7 @@
                   <button id="gradeRight" type="button" title="Graduar ponto para direita"><i data-lucide="arrow-right"></i><span>Direita</span></button>
                   <button id="gradeDown" type="button" title="Graduar ponto para baixo"><i data-lucide="arrow-down"></i><span>Baixo</span></button>
                 </div>
+                <div class="status-line">Use Modo &gt; Pontos, selecione um ponto e mova em centimetros.</div>
               </div>
             </details>
             <details class="menu-dropdown">

@@ -480,6 +480,10 @@ button kbd {
   min-width: 330px;
 }
 
+.grading-menu {
+  min-width: 300px;
+}
+
 .list-menu {
   min-width: 300px;
 }
