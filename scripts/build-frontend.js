@@ -4,7 +4,7 @@ const path = require("path");
 
 const root = path.join(__dirname, "..");
 const dist = path.join(root, "dist");
-const staticFiles = ["index.html", "login.html", "admin.html", "mobile-scanner.html", "styles.css"];
+const staticFiles = ["index.html", "login.html", "admin.html", "mobile-scanner.html", "tutorial.html", "styles.css"];
 const jsEntries = ["app.js", "login.js", "admin.js", "mobile-scanner.js"];
 
 async function build() {
