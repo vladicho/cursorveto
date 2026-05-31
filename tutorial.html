@@ -18,6 +18,28 @@
       </header>
 
       <section class="tutorial-content">
+        <div class="tutorial-visual">
+          <div class="annotated-screen">
+            <div class="annotated-topbar">
+              <span class="annotated-brand">M</span>
+              <span class="annotated-menu" data-callout="arquivo">Arquivo</span>
+              <span class="annotated-menu" data-callout="tecido">Tecido</span>
+              <span class="annotated-menu" data-callout="modo">Modo</span>
+              <span class="annotated-menu" data-callout="digitalizacao">Digitalizacao</span>
+              <span class="annotated-menu" data-callout="peca">Peca</span>
+            </div>
+            <div class="annotated-status">Modo: Mover | Tecido: Plano 150 cm | Status: Pronto</div>
+            <div class="annotated-canvas">
+              <div class="annotated-fabric"></div>
+              <div class="annotated-piece"></div>
+              <div class="callout callout-file"><b>1</b><span>Arquivo: abrir, salvar, exportar e tutorial</span></div>
+              <div class="callout callout-digitize"><b>2</b><span>Digitalizacao: foto, camera, ArUco e scikit-image</span></div>
+              <div class="callout callout-canvas"><b>3</b><span>Canvas: editar pecas, pontos e encaixe</span></div>
+              <div class="callout callout-piece"><b>4</b><span>Peca: nome, tamanho, cor, fio e piques</span></div>
+            </div>
+          </div>
+        </div>
+
         <h2>1. Abrir o editor</h2>
         <p>No Render, abra a URL principal do servico <strong>moldelab</strong>. No Windows/local, execute <code>abrir-moldelab.cmd</code> e acesse <code>http://localhost:8787</code>.</p>
 
@@ -40,6 +62,22 @@
         <p>Em <strong>Arquivo &gt; Importar vetor</strong>, escolha um arquivo <code>.svg</code>, <code>.dxf</code> ou <code>.plt</code>. O MoldeLab cria pecas a partir dos caminhos encontrados.</p>
 
         <h2>6. Digitalizar por imagem</h2>
+        <div class="tutorial-shot shot-digitize">
+          <div class="shot-menu">
+            <strong>Digitalizacao</strong>
+            <span>Foto ou scan do molde</span>
+            <span>Medida de referencia (cm)</span>
+            <span>Motor de digitalizacao</span>
+            <span>Detectar ArUco</span>
+            <span>Auto digitalizar</span>
+          </div>
+          <div class="shot-preview">
+            <div class="shot-photo"></div>
+            <div class="shot-arrow arrow-import"><span>Importe a foto aqui</span></div>
+            <div class="shot-arrow arrow-scale"><span>Depois calibre a medida</span></div>
+            <div class="shot-arrow arrow-auto"><span>Por fim use Auto digitalizar</span></div>
+          </div>
+        </div>
         <ol>
           <li>Abra <strong>Digitalizacao</strong>.</li>
           <li>Escolha uma foto ou scan do molde.</li>
@@ -52,15 +90,50 @@
         <p>Para webcam, use <strong>Abrir camera</strong> e depois <strong>Capturar</strong>. Para celular, leia o QR Code, enquadre o molde e clique em <strong>Capturar do celular</strong> no editor.</p>
 
         <h2>8. ArUco</h2>
+        <div class="tutorial-shot shot-aruco">
+          <div class="shot-preview">
+            <div class="shot-photo large"></div>
+            <div class="shot-marker"></div>
+            <div class="shot-arrow arrow-marker"><span>Marcador com tamanho conhecido</span></div>
+            <div class="shot-arrow arrow-contour"><span>Molde junto na mesma foto</span></div>
+          </div>
+          <div class="shot-menu">
+            <strong>ArUco</strong>
+            <span>Marcador ArUco (cm): 5</span>
+            <span>Detectar ArUco</span>
+            <span>Motor: ArUco + OpenCV</span>
+          </div>
+        </div>
         <p>Coloque um marcador ArUco ou quadrado preto na foto, informe o tamanho real em <strong>Marcador ArUco (cm)</strong> e clique em <strong>Detectar ArUco</strong>. Depois use <strong>Auto digitalizar</strong>.</p>
 
         <h2>9. scikit-image</h2>
+        <div class="tutorial-shot shot-skimage">
+          <div class="shot-flow">
+            <div>Editor<br /><small>moldelab</small></div>
+            <span></span>
+            <div>Microservico<br /><small>moldelab-skimage</small></div>
+            <span></span>
+            <div>Contorno<br /><small>pontos vetoriais</small></div>
+          </div>
+          <div class="shot-arrow arrow-service"><span>O app envia a imagem e recebe o contorno pronto</span></div>
+        </div>
         <p>Escolha <strong>scikit-image</strong> em <strong>Motor de digitalizacao</strong> e clique em <strong>Auto digitalizar</strong>. O app envia a imagem para o microservico Python <strong>moldelab-skimage</strong> e recebe o contorno real. No Render free, a primeira chamada pode demorar se o servico estiver dormindo.</p>
 
         <h2>10. Configurar tecido</h2>
         <p>Em <strong>Tecido</strong>, defina tipo, largura, margem entre pecas, grade e tempo do encaixe.</p>
 
         <h2>11. Encaixe automatico</h2>
+        <div class="tutorial-shot shot-nesting">
+          <div class="nest-before">
+            <strong>Antes</strong>
+            <i></i><i></i><i></i>
+          </div>
+          <div class="shot-arrow arrow-nest"><span>Encaixe automatico organiza as pecas</span></div>
+          <div class="nest-after">
+            <strong>Depois</strong>
+            <i></i><i></i><i></i>
+          </div>
+        </div>
         <p>Depois de criar/importar pecas, abra <strong>Tecido</strong> e clique em <strong>Encaixe automatico</strong>. O app testa combinacoes e aplica o melhor encaixe encontrado.</p>
 
         <h2>12. Exportar</h2>
