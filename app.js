@@ -131,7 +131,7 @@ let historySuspended = false;
 let lockButtonState = null;
 let gridButtonState = null;
 let pieceClipboard = null;
-let floatingToolbarVisible = localStorage.getItem("moldelab_floating_toolbar") !== "0";
+let floatingToolbarVisible = localStorage.getItem("moldelab_floating_toolbar_v2") !== "0";
 let cameraStream = null;
 let scannerSocket = null;
 let scannerPollTimer = null;
@@ -1179,18 +1179,23 @@ function updateFloatingToolbar() {
     return;
   }
 
+  toolbar.hidden = false;
   const canvasRect = canvas.getBoundingClientRect();
-  const wrapRect = canvas.parentElement.getBoundingClientRect();
-  const box = bounds(transformedPoints(piece).map(worldToScreen));
+  const box = bounds(transformedPoints(piece).map((point) => {
+    const [x, y] = worldToScreen(point);
+    return [
+      canvasRect.left + (x / canvas.width) * canvasRect.width,
+      canvasRect.top + (y / canvas.height) * canvasRect.height,
+    ];
+  }));
   const toolbarWidth = toolbar.offsetWidth || 440;
   const toolbarHeight = toolbar.offsetHeight || 44;
-  const rawLeft = canvasRect.left - wrapRect.left + box.maxX + 12;
-  const rawTop = canvasRect.top - wrapRect.top + box.minY;
-  const maxLeft = canvas.parentElement.scrollLeft + canvas.parentElement.clientWidth - toolbarWidth - 10;
-  const maxTop = canvas.parentElement.scrollTop + canvas.parentElement.clientHeight - toolbarHeight - 10;
+  const rawLeft = box.maxX + 12;
+  const rawTop = box.minY;
+  const maxLeft = window.innerWidth - toolbarWidth - 10;
+  const maxTop = window.innerHeight - toolbarHeight - 10;
   toolbar.style.left = `${Math.max(10, Math.min(rawLeft, maxLeft))}px`;
   toolbar.style.top = `${Math.max(10, Math.min(rawTop, maxTop))}px`;
-  toolbar.hidden = false;
 
   toolbar.querySelectorAll('[data-float-action="duplicate"], [data-float-action="rotate-left"], [data-float-action="rotate-right"], [data-float-action="mirror"], [data-float-action^="grade-"]').forEach((button) => {
     button.disabled = piece.locked;
@@ -3978,7 +3983,7 @@ ui.toggleGrid.addEventListener("click", () => {
 });
 ui.toggleFloatingToolbar.addEventListener("click", () => {
   floatingToolbarVisible = !floatingToolbarVisible;
-  localStorage.setItem("moldelab_floating_toolbar", floatingToolbarVisible ? "1" : "0");
+  localStorage.setItem("moldelab_floating_toolbar_v2", floatingToolbarVisible ? "1" : "0");
   updateImportStatus(floatingToolbarVisible ? "Icones perto da peca visiveis." : "Icones perto da peca ocultos.");
   draw();
 });
@@ -4175,6 +4180,9 @@ ui.floatingPieceToolbar.addEventListener("click", (event) => {
 ui.floatingPieceToolbar.addEventListener("pointerdown", (event) => {
   event.stopPropagation();
 });
+
+canvas.parentElement.addEventListener("scroll", updateFloatingToolbar);
+window.addEventListener("resize", updateFloatingToolbar);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {

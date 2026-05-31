@@ -975,8 +975,8 @@ canvas {
 }
 
 .floating-piece-toolbar {
-  position: absolute;
-  z-index: 25;
+  position: fixed;
+  z-index: 80;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
