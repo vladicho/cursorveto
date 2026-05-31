@@ -48,6 +48,7 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Movimento fino da peca selecionada pelo teclado
 - Renomear, duplicar e apagar pecas para grade manual
 - Copia sobreposta para graduacao: escolha uma cor, crie a copia em cima da peca base e estique os pontos
+- Tabela de graduacao por ponto com linhas de tamanho e deslocamentos DX/DY em centimetros
 - Edicao, insercao e remocao de pontos
 - Movimento fino do ponto selecionado pelo teclado
 - Ajuste opcional de pontos e pecas na grade

@@ -84,6 +84,8 @@ const ui = {
   gradeCopySize: document.querySelector("#gradeCopySize"),
   gradeCopyColor: document.querySelector("#gradeCopyColor"),
   createGradeCopy: document.querySelector("#createGradeCopy"),
+  gradePointNumber: document.querySelector("#gradePointNumber"),
+  applyGradeTable: document.querySelector("#applyGradeTable"),
   rotation: document.querySelector("#rotation"),
   grainAngle: document.querySelector("#grainAngle"),
   selectionName: document.querySelector("#selectionName"),
@@ -1047,6 +1049,11 @@ function nextGradingColor(sourceColor) {
     || "#dc2626";
 }
 
+function gradeCopyId(baseId, size) {
+  const safeSize = String(size || "grade").toLowerCase().replace(/[^a-z0-9]+/g, "-") || "grade";
+  return `grade-${baseId}-${safeSize}`;
+}
+
 function iconButtonMarkup(icon, label) {
   return `<i data-lucide="${icon}"></i><span>${label}</span>`;
 }
@@ -1354,6 +1361,7 @@ function updateMetrics(collisions) {
   ui.pieceModel.value = piece ? piece.model || "" : "";
   ui.pieceSize.value = piece ? piece.size || "" : "";
   ui.pieceColor.value = piece ? safePieceColor(piece.color) : "#475569";
+  ui.gradePointNumber.value = selectedPointIndex === null ? "-" : String(selectedPointIndex + 1);
   const nextLockButtonState = piece?.locked ? "locked" : "unlocked";
   if (lockButtonState !== nextLockButtonState) {
     ui.toggleLockPiece.innerHTML = piece?.locked
@@ -2332,6 +2340,7 @@ function projectSnapshot() {
       rotation: piece.rotation,
       grainAngle: piece.grainAngle || 0,
       seamAllowance: Number(piece.seamAllowance) || 0,
+      gradeBaseId: piece.gradeBaseId || "",
       mirrored: Boolean(piece.mirrored),
       locked: Boolean(piece.locked),
       color: piece.color,
@@ -2382,6 +2391,7 @@ function restoreSnapshot(snapshot) {
       rotation: Number(piece.rotation) || 0,
       grainAngle: Number(piece.grainAngle) || 0,
       seamAllowance: Number(piece.seamAllowance) || 0,
+      gradeBaseId: piece.gradeBaseId || "",
       mirrored: Boolean(piece.mirrored),
       locked: Boolean(piece.locked),
       color: piece.color || "#475569",
@@ -2824,7 +2834,7 @@ function createGradingCopy() {
   const existingIds = new Set(pieces.map((piece) => piece.id));
   const copySize = ui.gradeCopySize.value.trim() || `${source.size || "Grade"}+`;
   const safeSizeId = copySize.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "copia";
-  let id = `grade-${source.id}-${safeSizeId}`;
+  let id = gradeCopyId(source.id, safeSizeId);
   let suffix = 2;
   while (existingIds.has(id)) {
     id = `grade-${source.id}-${safeSizeId}-${suffix}`;
@@ -2841,6 +2851,7 @@ function createGradingCopy() {
     id,
     name: `${source.name} ${copySize}`,
     size: copySize,
+    gradeBaseId: source.id,
     color: copyColor,
     locked: false,
     points: source.points.map(([x, y]) => [x, y]),
@@ -2852,6 +2863,88 @@ function createGradingCopy() {
   mode = "points";
   ui.gradeCopyColor.value = nextGradingColor(copyColor);
   updateImportStatus(`Copia de graduacao criada sobre ${source.name}. Selecione os pontos e estique com as setas.`);
+  draw();
+}
+
+function gradeTableRows() {
+  const sizes = [...document.querySelectorAll(".grade-table-size")];
+  const dxValues = [...document.querySelectorAll(".grade-table-dx")];
+  const dyValues = [...document.querySelectorAll(".grade-table-dy")];
+  return sizes.map((input, index) => ({
+    size: input.value.trim(),
+    dx: Number(dxValues[index]?.value) || 0,
+    dy: Number(dyValues[index]?.value) || 0,
+  })).filter((row) => row.size);
+}
+
+function basePieceForGrading(piece) {
+  if (!piece) return null;
+  return pieces.find((item) => item.id === piece.gradeBaseId) || piece;
+}
+
+function findOrCreateGradePiece(base, row, colorSeed) {
+  const id = gradeCopyId(base.id, row.size);
+  const existing = pieces.find((piece) => piece.id === id);
+  if (existing) return existing;
+  const color = nextGradingColor(colorSeed || base.color);
+  const copy = {
+    ...base,
+    id,
+    name: `${base.name} ${row.size}`,
+    size: row.size,
+    gradeBaseId: base.id,
+    color,
+    locked: false,
+    points: base.points.map(([x, y]) => [x, y]),
+    notches: [...(base.notches || [])],
+  };
+  pieces.push(copy);
+  return copy;
+}
+
+function applyGradeTableToSelectedPoint() {
+  const current = selectedPiece();
+  const base = basePieceForGrading(current);
+  if (!base) {
+    updateImportStatus("Selecione uma peca para graduar via tabela.");
+    return;
+  }
+  if (selectedPointIndex === null) {
+    mode = "points";
+    selectedId = current?.id || base.id;
+    updateImportStatus("Selecione um ponto para aplicar a tabela de graduacao.");
+    draw();
+    return;
+  }
+  if (!base.points[selectedPointIndex]) {
+    updateImportStatus("Este ponto nao existe na peca base.");
+    return;
+  }
+
+  const rows = gradeTableRows().filter((row) => row.size !== String(base.size || "").trim() && (row.dx !== 0 || row.dy !== 0));
+  if (!rows.length) {
+    updateImportStatus("Preencha pelo menos uma linha com tamanho e DX/DY diferente de zero.");
+    return;
+  }
+
+  const baseWorldPoint = transformedPoints(base)[selectedPointIndex];
+  let lastUpdatedId = current?.id || base.id;
+  let colorSeed = base.color;
+  let updated = 0;
+  recordHistory();
+  rows.forEach((row) => {
+    const copy = findOrCreateGradePiece(base, row, colorSeed);
+    colorSeed = copy.color;
+    if (!copy.points[selectedPointIndex]) return;
+    const movedPoint = [baseWorldPoint[0] + row.dx, baseWorldPoint[1] + row.dy];
+    copy.points[selectedPointIndex] = inverseTransformedPoint(copy, movedPoint);
+    lastUpdatedId = copy.id;
+    updated += 1;
+  });
+
+  selectedId = lastUpdatedId;
+  mode = "points";
+  updateImportStatus(`Tabela aplicada no ponto ${selectedPointIndex + 1}: ${updated} tamanho(s) atualizados.`);
   draw();
 }
 
@@ -4098,6 +4191,7 @@ ui.gradeDown.addEventListener("click", () => gradeSelectedPoint(0, 1));
 ui.gradeLeft.addEventListener("click", () => gradeSelectedPoint(-1, 0));
 ui.gradeRight.addEventListener("click", () => gradeSelectedPoint(1, 0));
 ui.createGradeCopy.addEventListener("click", createGradingCopy);
+ui.applyGradeTable.addEventListener("click", applyGradeTableToSelectedPoint);
 ui.projectName.addEventListener("input", () => updateMarkerHeader(currentMarkerStats()));
 ui.pieceName.addEventListener("change", renameSelectedPiece);
 ui.pieceModel.addEventListener("change", () => updateSelectedPieceMeta("model", ui.pieceModel));
