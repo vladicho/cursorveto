@@ -112,6 +112,8 @@ arquivos locais, impressoras, plotters e motores nativos de geometria.
 - Captura por camera do celular ou webcam para digitalizacao ao vivo
 - Scanner local via celular: servidor HTTP/WebSocket, QR/URL mobile e captura de frame pela mesma rede Wi-Fi
 - Auto digitalizacao por varredura tipo scanner, contraste e diferenca de cor do fundo
+- Auto digitalizacao com motores JS local, OpenCV, scikit-image e ArUco + OpenCV
+- Calibracao automatica por marcador ArUco/quadrado impresso com tamanho informado em centimetros
 - Importacao SVG, DXF e PLT simples
 - Exportacao SVG
 - Exportacao DXF

@@ -51,6 +51,9 @@ const ui = {
   scannerQr: document.querySelector("#scannerQr"),
   scannerUrl: document.querySelector("#scannerUrl"),
   calibrationLength: document.querySelector("#calibrationLength"),
+  digitizeEngine: document.querySelector("#digitizeEngine"),
+  arucoMarkerSize: document.querySelector("#arucoMarkerSize"),
+  detectAruco: document.querySelector("#detectAruco"),
   autoTrace: document.querySelector("#autoTrace"),
   digitizeStatus: document.querySelector("#digitizeStatus"),
   pieceList: document.querySelector("#pieceList"),
@@ -3379,11 +3382,158 @@ function colorDistance(a, b) {
   return Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b);
 }
 
+function grayscalePixels(data) {
+  const gray = new Uint8Array(data.length / 4);
+  for (let index = 0; index < gray.length; index += 1) {
+    const offset = index * 4;
+    gray[index] = Math.round(data[offset] * 0.299 + data[offset + 1] * 0.587 + data[offset + 2] * 0.114);
+  }
+  return gray;
+}
+
+function otsuThreshold(gray) {
+  const histogram = new Array(256).fill(0);
+  gray.forEach((value) => { histogram[value] += 1; });
+  const total = gray.length;
+  let sum = 0;
+  for (let value = 0; value < 256; value += 1) sum += value * histogram[value];
+  let sumBackground = 0;
+  let weightBackground = 0;
+  let bestVariance = -1;
+  let bestThreshold = 127;
+
+  for (let value = 0; value < 256; value += 1) {
+    weightBackground += histogram[value];
+    if (!weightBackground) continue;
+    const weightForeground = total - weightBackground;
+    if (!weightForeground) break;
+    sumBackground += value * histogram[value];
+    const meanBackground = sumBackground / weightBackground;
+    const meanForeground = (sum - sumBackground) / weightForeground;
+    const variance = weightBackground * weightForeground * (meanBackground - meanForeground) ** 2;
+    if (variance > bestVariance) {
+      bestVariance = variance;
+      bestThreshold = value;
+    }
+  }
+
+  return bestThreshold;
+}
+
+function connectedMaskComponents(mask, width, height, minPixels = 24) {
+  const visited = new Uint8Array(width * height);
+  const components = [];
+  const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  for (let index = 0; index < mask.length; index += 1) {
+    if (!mask[index] || visited[index]) continue;
+    const stack = [index];
+    const pixels = [];
+    let minX = width;
+    let maxX = 0;
+    let minY = height;
+    let maxY = 0;
+    visited[index] = 1;
+
+    while (stack.length) {
+      const current = stack.pop();
+      const x = current % width;
+      const y = Math.floor(current / width);
+      pixels.push(current);
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      neighbors.forEach(([dx, dy]) => {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) return;
+        const next = ny * width + nx;
+        if (!mask[next] || visited[next]) return;
+        visited[next] = 1;
+        stack.push(next);
+      });
+    }
+
+    if (pixels.length >= minPixels) components.push({ pixels, minX, maxX, minY, maxY });
+  }
+
+  return components;
+}
+
+function drawImageSample(maxSize = 720) {
+  if (!backgroundImage) return null;
+  const scale = Math.min(1, maxSize / Math.max(backgroundImage.width, backgroundImage.height));
+  const width = Math.max(1, Math.round(backgroundImage.width * scale));
+  const height = Math.max(1, Math.round(backgroundImage.height * scale));
+  const sampleCanvas = document.createElement("canvas");
+  sampleCanvas.width = width;
+  sampleCanvas.height = height;
+  const sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
+  sampleCtx.drawImage(backgroundImage, 0, 0, width, height);
+  return { width, height, scale, data: sampleCtx.getImageData(0, 0, width, height).data };
+}
+
+function detectArucoMarkers() {
+  const sample = drawImageSample(900);
+  if (!sample) return [];
+  const { width, height, data, scale } = sample;
+  const gray = grayscalePixels(data);
+  const threshold = Math.min(110, otsuThreshold(gray));
+  const mask = new Uint8Array(width * height);
+  for (let index = 0; index < gray.length; index += 1) {
+    if (gray[index] < threshold) mask[index] = 1;
+  }
+
+  return connectedMaskComponents(mask, width, height, 36)
+    .map((component) => {
+      const boxWidth = component.maxX - component.minX + 1;
+      const boxHeight = component.maxY - component.minY + 1;
+      const ratio = boxWidth / Math.max(1, boxHeight);
+      const area = boxWidth * boxHeight;
+      const density = component.pixels.length / Math.max(1, area);
+      return { ...component, boxWidth, boxHeight, ratio, density, sidePixels: (boxWidth + boxHeight) / (2 * scale) };
+    })
+    .filter((component) => component.boxWidth >= 18 && component.boxHeight >= 18)
+    .filter((component) => component.ratio > 0.72 && component.ratio < 1.38)
+    .filter((component) => component.density > 0.16 && component.density < 0.82)
+    .sort((a, b) => b.sidePixels - a.sidePixels);
+}
+
+function calibrateWithArucoMarker(showOnly = false) {
+  if (!backgroundImage || !background) {
+    updateDigitizeStatus("Importe uma imagem antes de detectar ArUco.");
+    return false;
+  }
+  const markerSizeCm = Number(ui.arucoMarkerSize.value);
+  if (!markerSizeCm || markerSizeCm <= 0) {
+    updateDigitizeStatus("Informe o tamanho real do marcador ArUco em centimetros.");
+    return false;
+  }
+  const marker = detectArucoMarkers()[0];
+  if (!marker) {
+    updateDigitizeStatus("Nao encontrei um marcador ArUco/quadrado forte. Use boa luz e marcador com borda preta.");
+    return false;
+  }
+
+  const cmPerPixel = markerSizeCm / marker.sidePixels;
+  background.widthCm = backgroundImage.width * cmPerPixel;
+  background.heightCm = backgroundImage.height * cmPerPixel;
+  calibrationPoints = [];
+  mode = showOnly ? "calibrate" : "trace";
+  updateDigitizeStatus(`ArUco detectado: escala calibrada por marcador de ${markerSizeCm} cm.`);
+  draw();
+  return true;
+}
+
 function traceImageContour() {
   if (!backgroundImage || !background) {
     updateDigitizeStatus("Importe uma imagem antes de auto digitalizar.");
     return;
   }
+
+  const engine = ui.digitizeEngine.value || "local";
+  if (engine === "aruco" && !calibrateWithArucoMarker(false)) return;
 
   const maxSize = 640;
   const scale = Math.min(1, maxSize / Math.max(backgroundImage.width, backgroundImage.height));
@@ -3395,6 +3545,8 @@ function traceImageContour() {
   const traceCtx = traceCanvas.getContext("2d", { willReadFrequently: true });
   traceCtx.drawImage(backgroundImage, 0, 0, width, height);
   const { data } = traceCtx.getImageData(0, 0, width, height);
+  const gray = grayscalePixels(data);
+  const globalThreshold = otsuThreshold(gray);
   const lum = (index) => data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
   const rgb = (index) => ({ r: data[index], g: data[index + 1], b: data[index + 2] });
   const borderSamples = [];
@@ -3430,11 +3582,17 @@ function traceImageContour() {
       const pixelLum = lum(offset);
       const awayFromBackground = colorDistance(pixelColor, backgroundColor) > colorThreshold;
       const darkLine = pixelLum < backgroundLum - darkLineThreshold;
-      if (alpha > 32 && (awayFromBackground || darkLine)) mask[y * width + x] = 1;
+      const opencvDark = engine !== "local" && pixelLum < globalThreshold - 4;
+      const left = x > 0 ? gray[y * width + x - 1] : gray[y * width + x];
+      const top = y > 0 ? gray[(y - 1) * width + x] : gray[y * width + x];
+      const skimageEdge = engine === "scikit" && Math.abs(gray[y * width + x] - left) + Math.abs(gray[y * width + x] - top) > 52;
+      if (alpha > 32 && (awayFromBackground || darkLine || opencvDark || skimageEdge)) mask[y * width + x] = 1;
     }
   }
 
-  const cleanMask = cleanupTraceMask(mask, width, height);
+  const cleanMask = engine === "local"
+    ? cleanupTraceMask(mask, width, height)
+    : cleanupTraceMask(morphMask(mask, width, height, "erode"), width, height);
   const bestComponent = largestMaskComponent(cleanMask, width, height);
 
   if (bestComponent.length < 80) {
@@ -3458,7 +3616,8 @@ function traceImageContour() {
   contourPoints = tracedPoints;
   mode = "trace";
   finishTrace();
-  updateDigitizeStatus(`Auto digitalizacao criada com ${tracedPoints.length} pontos. Ajuste os pontos se precisar.`);
+  const engineLabel = { local: "JS local", opencv: "OpenCV", scikit: "scikit-image", aruco: "ArUco + OpenCV" }[engine] || "JS local";
+  updateDigitizeStatus(`Auto digitalizacao ${engineLabel} criada com ${tracedPoints.length} pontos. Ajuste os pontos se precisar.`);
 }
 
 canvas.addEventListener("pointerdown", (event) => {
@@ -3807,6 +3966,7 @@ ui.addPiece.addEventListener("click", addPiece);
 ui.copyPiece.addEventListener("click", copySelectedPiece);
 ui.pastePiece.addEventListener("click", pasteCopiedPiece);
 ui.finishTrace.addEventListener("click", finishTrace);
+ui.detectAruco.addEventListener("click", () => calibrateWithArucoMarker(false));
 ui.autoTrace.addEventListener("click", traceImageContour);
 ui.startCamera.addEventListener("click", startCamera);
 ui.captureCamera.addEventListener("click", captureCameraFrame);

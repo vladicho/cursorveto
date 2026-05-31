@@ -141,6 +141,20 @@
                   Medida de referencia (cm)
                   <input id="calibrationLength" type="number" min="1" max="200" step="0.5" value="10" />
                 </label>
+                <label>
+                  Motor de digitalizacao
+                  <select id="digitizeEngine">
+                    <option value="local">JS local</option>
+                    <option value="opencv">OpenCV</option>
+                    <option value="scikit">scikit-image</option>
+                    <option value="aruco">ArUco + OpenCV</option>
+                  </select>
+                </label>
+                <label>
+                  Marcador ArUco (cm)
+                  <input id="arucoMarkerSize" type="number" min="1" max="50" step="0.5" value="5" />
+                </label>
+                <button id="detectAruco" type="button"><i data-lucide="scan-search"></i><span>Detectar ArUco</span></button>
                 <button id="autoTrace" type="button"><i data-lucide="wand-sparkles"></i><span>Auto digitalizar</span></button>
                 <div id="digitizeStatus" class="status-line">Importe uma imagem para comecar.</div>
               </div>
