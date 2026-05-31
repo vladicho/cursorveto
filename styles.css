@@ -481,6 +481,9 @@ button kbd {
 
 .piece-menu {
   min-width: 330px;
+  max-width: min(360px, calc(100vw - 24px));
+  max-height: min(68vh, calc(100vh - 150px));
+  padding-right: 8px;
 }
 
 .grading-menu {
