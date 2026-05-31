@@ -787,6 +787,18 @@ button.danger-action:hover:not(:disabled) {
   z-index: 30;
 }
 
+.canvas-ribbon {
+  min-height: 52px;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #f8faf7;
+}
+
+.canvas-ribbon .compact-brand {
+  display: none !important;
+}
+
 .main-menu {
   display: flex;
   align-items: center;
@@ -794,6 +806,56 @@ button.danger-action:hover:not(:disabled) {
   gap: 8px;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.canvas-ribbon .main-menu {
+  align-items: stretch;
+  gap: 4px;
+}
+
+.canvas-ribbon .menu-dropdown {
+  display: flex;
+}
+
+.canvas-ribbon .menu-dropdown summary {
+  width: 62px;
+  min-height: 44px;
+  display: grid;
+  grid-template-rows: 20px 1fr;
+  place-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.canvas-ribbon .menu-dropdown summary::after {
+  display: none;
+}
+
+.canvas-ribbon .menu-dropdown summary svg,
+.canvas-ribbon .menu-dropdown summary [data-lucide] {
+  width: 20px;
+  height: 20px;
+}
+
+.canvas-ribbon .menu-dropdown summary span {
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-ribbon .menu-dropdown:nth-of-type(6) summary,
+.canvas-ribbon .menu-dropdown:nth-of-type(9) summary {
+  width: 74px;
+}
+
+.canvas-ribbon .menu-dropdown:nth-of-type(6) summary span,
+.canvas-ribbon .menu-dropdown:nth-of-type(9) summary span {
+  max-width: 72px;
 }
 
 .statusbar {
