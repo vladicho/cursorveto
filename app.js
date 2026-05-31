@@ -38,6 +38,7 @@ const ui = {
   snapToGrid: document.querySelector("#snapToGrid"),
   showGrid: document.querySelector("#showGrid"),
   toggleGrid: document.querySelector("#toggleGrid"),
+  toggleFloatingToolbar: document.querySelector("#toggleFloatingToolbar"),
   canvasToggleGrid: document.querySelector('[data-canvas-action="toggle-grid"]'),
   gridStep: document.querySelector("#gridStep"),
   addPiece: document.querySelector("#addPiece"),
@@ -102,6 +103,7 @@ const ui = {
   statusMessage: document.querySelector("#statusMessage"),
   pieceContextMenu: document.querySelector("#pieceContextMenu"),
   canvasContextMenu: document.querySelector("#canvasContextMenu"),
+  floatingPieceToolbar: document.querySelector("#floatingPieceToolbar"),
 };
 
 const baseScale = 4;
@@ -129,6 +131,7 @@ let historySuspended = false;
 let lockButtonState = null;
 let gridButtonState = null;
 let pieceClipboard = null;
+let floatingToolbarVisible = localStorage.getItem("moldelab_floating_toolbar") !== "0";
 let cameraStream = null;
 let scannerSocket = null;
 let scannerPollTimer = null;
@@ -1167,6 +1170,40 @@ function updateGridButtons() {
   refreshIcons();
 }
 
+function updateFloatingToolbar() {
+  const toolbar = ui.floatingPieceToolbar;
+  const piece = selectedPiece();
+  if (!toolbar) return;
+  if (!floatingToolbarVisible || !piece) {
+    toolbar.hidden = true;
+    return;
+  }
+
+  const canvasRect = canvas.getBoundingClientRect();
+  const wrapRect = canvas.parentElement.getBoundingClientRect();
+  const box = bounds(transformedPoints(piece).map(worldToScreen));
+  const toolbarWidth = toolbar.offsetWidth || 440;
+  const toolbarHeight = toolbar.offsetHeight || 44;
+  const rawLeft = canvasRect.left - wrapRect.left + box.maxX + 12;
+  const rawTop = canvasRect.top - wrapRect.top + box.minY;
+  const maxLeft = canvas.parentElement.scrollLeft + canvas.parentElement.clientWidth - toolbarWidth - 10;
+  const maxTop = canvas.parentElement.scrollTop + canvas.parentElement.clientHeight - toolbarHeight - 10;
+  toolbar.style.left = `${Math.max(10, Math.min(rawLeft, maxLeft))}px`;
+  toolbar.style.top = `${Math.max(10, Math.min(rawTop, maxTop))}px`;
+  toolbar.hidden = false;
+
+  toolbar.querySelectorAll('[data-float-action="duplicate"], [data-float-action="rotate-left"], [data-float-action="rotate-right"], [data-float-action="mirror"], [data-float-action^="grade-"]').forEach((button) => {
+    button.disabled = piece.locked;
+  });
+  toolbar.querySelectorAll('[data-float-action^="grade-"]').forEach((button) => {
+    button.disabled = piece.locked || selectedPointIndex === null;
+  });
+  const lockButton = toolbar.querySelector('[data-float-action="lock"]');
+  if (lockButton) {
+    lockButton.innerHTML = piece.locked ? iconButtonMarkup("unlock", "Desbloquear") : iconButtonMarkup("lock", "Bloquear");
+  }
+}
+
 function updateClipboardButtons() {
   ui.pastePiece.disabled = !pieceClipboard;
   ui.canvasPastePiece.disabled = !pieceClipboard;
@@ -1314,6 +1351,7 @@ function updateMetrics(collisions) {
   ui.grainAngle.value = String(piece?.grainAngle ?? 0);
   renderPieceStats(piece);
   renderPieceList();
+  updateFloatingToolbar();
 }
 
 function updateModeButtons() {
@@ -1327,6 +1365,7 @@ function updateModeButtons() {
   ui.undoAction.disabled = undoStack.length === 0;
   ui.redoAction.disabled = redoStack.length === 0;
   canvas.style.cursor = mode === "pan" ? "grab" : mode === "move" ? "move" : "crosshair";
+  updateFloatingToolbar();
 }
 
 function updateDigitizeStatus(message) {
@@ -2753,6 +2792,24 @@ function gradeSelectedPoint(deltaX, deltaY) {
   draw();
 }
 
+function handleFloatingToolbarAction(action) {
+  const actions = {
+    move: () => ui.modeMove.click(),
+    points: () => ui.modePoints.click(),
+    copy: () => ui.copyPiece.click(),
+    duplicate: () => ui.duplicatePiece.click(),
+    lock: () => ui.toggleLockPiece.click(),
+    "rotate-left": () => ui.rotateLeft.click(),
+    "rotate-right": () => ui.rotateRight.click(),
+    mirror: () => ui.mirrorPiece.click(),
+    "grade-left": () => ui.gradeLeft.click(),
+    "grade-right": () => ui.gradeRight.click(),
+    "grade-up": () => ui.gradeUp.click(),
+    "grade-down": () => ui.gradeDown.click(),
+  };
+  actions[action]?.();
+}
+
 function addNotchToSelectedPoint() {
   const piece = selectedPiece();
   if (!piece || selectedPointIndex === null) {
@@ -3919,6 +3976,12 @@ ui.toggleGrid.addEventListener("click", () => {
   updateImportStatus(ui.showGrid.checked ? "Grade visivel." : "Grade oculta.");
   draw();
 });
+ui.toggleFloatingToolbar.addEventListener("click", () => {
+  floatingToolbarVisible = !floatingToolbarVisible;
+  localStorage.setItem("moldelab_floating_toolbar", floatingToolbarVisible ? "1" : "0");
+  updateImportStatus(floatingToolbarVisible ? "Icones perto da peca visiveis." : "Icones perto da peca ocultos.");
+  draw();
+});
 
 ui.rotateLeft.addEventListener("click", () => {
   const piece = selectedPiece();
@@ -4101,6 +4164,16 @@ ui.canvasContextMenu.addEventListener("click", (event) => {
   };
   actions[button.dataset.canvasAction]?.();
   closeCanvasContextMenu();
+});
+
+ui.floatingPieceToolbar.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-float-action]");
+  if (!button || button.disabled) return;
+  handleFloatingToolbarAction(button.dataset.floatAction);
+});
+
+ui.floatingPieceToolbar.addEventListener("pointerdown", (event) => {
+  event.stopPropagation();
 });
 
 document.addEventListener("keydown", (event) => {

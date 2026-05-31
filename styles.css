@@ -957,6 +957,7 @@ button.danger-action:hover:not(:disabled) {
 }
 
 .canvas-wrap {
+  position: relative;
   overflow: auto;
   padding: 22px;
 }
@@ -971,6 +972,46 @@ canvas {
   border-radius: 8px;
   box-shadow: 0 14px 35px rgba(29, 36, 36, 0.08);
   cursor: crosshair;
+}
+
+.floating-piece-toolbar {
+  position: absolute;
+  z-index: 25;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 420px;
+  border: 1px solid rgba(148, 163, 160, 0.7);
+  border-radius: 8px;
+  padding: 5px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 28px rgba(17, 24, 39, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+.floating-piece-toolbar[hidden] {
+  display: none;
+}
+
+.floating-piece-toolbar button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.floating-piece-toolbar button span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.floating-piece-toolbar button svg,
+.floating-piece-toolbar button [data-lucide] {
+  width: 17px;
+  height: 17px;
 }
 
 @media (max-width: 860px) {

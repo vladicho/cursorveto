@@ -102,6 +102,7 @@
                 <button id="fitView" title="Ajustar pecas a tela"><i data-lucide="scan-search"></i><span>Ajustar a tela</span><kbd>F</kbd></button>
                 <button id="zoomIn" title="Aumentar zoom"><i data-lucide="zoom-in"></i><span>Aumentar zoom</span><kbd>+</kbd></button>
                 <button id="toggleGrid" title="Mostrar ou ocultar grade"><i data-lucide="grid-2x2"></i><span>Mostrar grade</span><kbd>G</kbd></button>
+                <button id="toggleFloatingToolbar" title="Mostrar ou ocultar icones perto da peca"><i data-lucide="panel-top-open"></i><span>Icones na peca</span></button>
               </div>
             </details>
             <details class="menu-dropdown">
@@ -290,6 +291,20 @@
         </section>
         <div class="canvas-wrap">
           <canvas id="canvas" width="1280" height="760"></canvas>
+          <div id="floatingPieceToolbar" class="floating-piece-toolbar" hidden>
+            <button data-float-action="move" title="Mover"><i data-lucide="move"></i><span>Mover</span></button>
+            <button data-float-action="points" title="Pontos"><i data-lucide="mouse-pointer-2"></i><span>Pontos</span></button>
+            <button data-float-action="copy" title="Copiar"><i data-lucide="copy"></i><span>Copiar</span></button>
+            <button data-float-action="duplicate" title="Duplicar"><i data-lucide="clipboard-copy"></i><span>Duplicar</span></button>
+            <button data-float-action="lock" title="Bloquear"><i data-lucide="lock"></i><span>Bloquear</span></button>
+            <button data-float-action="rotate-left" title="Girar esquerda"><i data-lucide="rotate-ccw"></i><span>Girar esquerda</span></button>
+            <button data-float-action="rotate-right" title="Girar direita"><i data-lucide="rotate-cw"></i><span>Girar direita</span></button>
+            <button data-float-action="mirror" title="Espelhar"><i data-lucide="flip-horizontal"></i><span>Espelhar</span></button>
+            <button data-float-action="grade-left" title="Graduar esquerda"><i data-lucide="arrow-left"></i><span>Graduar esquerda</span></button>
+            <button data-float-action="grade-right" title="Graduar direita"><i data-lucide="arrow-right"></i><span>Graduar direita</span></button>
+            <button data-float-action="grade-up" title="Graduar cima"><i data-lucide="arrow-up"></i><span>Graduar cima</span></button>
+            <button data-float-action="grade-down" title="Graduar baixo"><i data-lucide="arrow-down"></i><span>Graduar baixo</span></button>
+          </div>
         </div>
         <div id="pieceContextMenu" class="context-menu" hidden>
           <button data-context-action="duplicate"><i data-lucide="copy"></i><span>Duplicar peca</span></button>
