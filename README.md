@@ -151,15 +151,13 @@ abre `http://localhost:8787`, necessario para o QR Code e o scanner pelo celular
 
 ## Deploy no Render
 
-O app salva usuarios em `users.json`. No Render, esse arquivo precisa ficar em
-um disco persistente, porque o filesystem comum do servico e temporario entre
-restarts e redeploys. Disco persistente exige web service pago, entao o
-`render.yaml` usa `plan: starter`, monta um disco em `/var/data` e configura
-`MOLDELAB_DATA_DIR=/var/data/moldelab`.
+O deploy atual usa `plan: free` e pula login com `MOLDELAB_AUTH_DISABLED=1`,
+entao o editor fica aberto para quem tiver a URL. Para religar autenticacao,
+remova essa variavel ou mude o valor para `0` no Render.
 
-O deploy atual pula login com `MOLDELAB_AUTH_DISABLED=1`, entao o editor fica
-aberto para quem tiver a URL. Para religar autenticacao, remova essa variavel
-ou mude o valor para `0` no Render.
+No plano gratuito do Render, o filesystem e temporario entre restarts e
+redeploys. Se a autenticacao for religada em producao, use um servico pago com
+disco persistente ou um banco externo para manter `users.json`.
 
 Defina manualmente no painel do Render as variaveis secretas
 `MOLDELAB_BOOTSTRAP_EMAIL` e `MOLDELAB_BOOTSTRAP_PASSWORD`. Como elas usam
