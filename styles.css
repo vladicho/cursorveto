@@ -318,14 +318,34 @@ button {
   min-width: 0;
 }
 
+.menu-link {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  min-width: 0;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  background: white;
+  color: var(--ink);
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 1;
+  text-decoration: none;
+}
+
 button svg,
-button [data-lucide] {
+button [data-lucide],
+.menu-link svg,
+.menu-link [data-lucide] {
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
 }
 
-button span {
+button span,
+.menu-link span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
