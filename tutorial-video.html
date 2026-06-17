@@ -60,6 +60,7 @@
           <button id="videoPrev" type="button"><span>Anterior</span></button>
           <button id="videoPlay" class="primary" type="button"><span>Pausar</span></button>
           <button id="videoNext" type="button"><span>Proximo</span></button>
+          <button id="videoVoice" type="button" title="Narração por voz"><span>🔊 Voz: ON</span></button>
         </div>
 
         <div class="video-chapters" id="videoChapters" aria-label="Capitulos do tutorial"></div>
@@ -151,13 +152,47 @@
       const play = document.querySelector("#videoPlay");
       const prev = document.querySelector("#videoPrev");
       const next = document.querySelector("#videoNext");
+      const voiceBtn = document.querySelector("#videoVoice");
       const videoMode = document.querySelector("#videoMode");
       const videoFabric = document.querySelector("#videoFabric");
       const videoStatus = document.querySelector("#videoStatus");
+
       let current = 0;
       let playing = true;
       let timer = null;
+      let voiceEnabled = true;
 
+      // --- TTS ---
+      const synth = window.speechSynthesis;
+
+      function getVoicePT() {
+        const voices = synth.getVoices();
+        return (
+          voices.find(v => v.lang === "pt-BR") ||
+          voices.find(v => v.lang.startsWith("pt")) ||
+          voices[0] ||
+          null
+        );
+      }
+
+      function speak(stepText) {
+        if (!voiceEnabled || !synth) return;
+        synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(stepText);
+        utterance.lang = "pt-BR";
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        const voice = getVoicePT();
+        if (voice) utterance.voice = voice;
+        synth.speak(utterance);
+      }
+
+      // Carregar vozes (necessário em alguns browsers)
+      if (synth.onvoiceschanged !== undefined) {
+        synth.onvoiceschanged = () => {};
+      }
+
+      // --- Chapters ---
       steps.forEach((step, index) => {
         const button = document.createElement("button");
         button.type = "button";
@@ -180,10 +215,13 @@
         videoFabric.textContent = step.fabric;
         videoStatus.textContent = step.status;
         progress.style.width = `${((current + 1) / steps.length) * 100}%`;
-        [...chapters.children].forEach((item, itemIndex) => item.classList.toggle("active", itemIndex === current));
+        [...chapters.children].forEach((item, itemIndex) =>
+          item.classList.toggle("active", itemIndex === current)
+        );
         playing = keepPlaying;
         play.querySelector("span").textContent = playing ? "Pausar" : "Reproduzir";
         restartTimer();
+        speak(`${step.title}. ${step.text}`);
       }
 
       function restartTimer() {
@@ -191,9 +229,21 @@
         if (playing) timer = window.setInterval(() => showStep(current + 1, true), 5200);
       }
 
-      play.addEventListener("click", () => showStep(current, !playing));
+      // --- Controles ---
+      play.addEventListener("click", () => {
+        if (playing) synth.cancel();
+        showStep(current, !playing);
+      });
+
       prev.addEventListener("click", () => showStep(current - 1, false));
       next.addEventListener("click", () => showStep(current + 1, false));
+
+      voiceBtn.addEventListener("click", () => {
+        voiceEnabled = !voiceEnabled;
+        voiceBtn.querySelector("span").textContent = voiceEnabled ? "🔊 Voz: ON" : "🔇 Voz: OFF";
+        if (!voiceEnabled) synth.cancel();
+      });
+
       showStep(0, true);
     </script>
   </body>
