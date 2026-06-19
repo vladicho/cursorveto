@@ -1,6 +1,6 @@
 # MoldeLab 
 
-MoldeLab e um prototipo web para modelagem de moldes vetoriais de vestuario,
+MoldeLab e um prototipo web para modelagem de moldes vetoriais  de vestuario,
 digitalizacao, nesting e importacao/exportacao de arquivos de risco.
 
 O produto web deve funcionar como SaaS pago, com usuario, senha, planos de
