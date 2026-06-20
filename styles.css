@@ -1077,7 +1077,7 @@ button.danger-action:hover:not(:disabled) {
 
 canvas {
   display: block;
-  width: 1280px;
+  width: 100%;
   max-width: none;
   height: auto;
   background: white;
@@ -2166,32 +2166,3 @@ canvas {
   }
 }
 
-
-/* Scrollbars */
-.canvas-wrap { position: relative; }
-.canvas-scrollbars { position: absolute; bottom: 0; left: 0; right: 0; pointer-events: none; }
-.scroll-track { position: absolute; background: #e5e7eb; border-radius: 4px; pointer-events: all; }
-.scroll-track.scroll-x { bottom: 4px; left: 4px; right: 16px; height: 8px; }
-.scroll-track.scroll-y { right: 4px; top: 4px; bottom: 16px; width: 8px; }
-.scroll-thumb { position: absolute; background: #9ca3af; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
-.scroll-thumb:hover { background: #6b7280; }
-
-/* Scrollbar horizontal sempre visivel */
-.canvas-wrap {
-  overflow-x: scroll !important;
-  scrollbar-width: thin;
-  scrollbar-color: #9ca3af #e5e7eb;
-}
-.canvas-wrap::-webkit-scrollbar {
-  height: 10px;
-}
-.canvas-wrap::-webkit-scrollbar-track {
-  background: #e5e7eb;
-}
-.canvas-wrap::-webkit-scrollbar-thumb {
-  background: #9ca3af;
-  border-radius: 5px;
-}
-.canvas-wrap::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
