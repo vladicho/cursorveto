@@ -733,7 +733,7 @@ button.danger-action:hover:not(:disabled) {
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   max-height: 220px;
-
+  overflow: auto;
 }
 
 .piece-stats div {
@@ -759,7 +759,7 @@ button.danger-action:hover:not(:disabled) {
   display: grid;
   gap: 8px;
   max-height: min(420px, calc(100vh - 150px));
-
+  overflow: auto;
 }
 
 .piece-list-item {
@@ -1071,7 +1071,7 @@ button.danger-action:hover:not(:disabled) {
 
 .canvas-wrap {
   position: relative;
-
+  overflow: auto;
   padding: 22px;
 }
 
@@ -2175,14 +2175,3 @@ canvas {
 .scroll-track.scroll-y { right: 4px; top: 4px; bottom: 16px; width: 8px; }
 .scroll-thumb { position: absolute; background: #9ca3af; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
 .scroll-thumb:hover { background: #6b7280; }
-
-/* Scrollbars v2 */
-.canvas-scrollbars {
-  position: relative;
-  width: 100%;
-  height: 12px;
-  background: transparent;
-}
-.scroll-track.scroll-y {
-  display: none;
-}
