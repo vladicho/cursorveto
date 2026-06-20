@@ -4453,3 +4453,29 @@ draw();
 
   setInterval(updateScrollbars, 200);
 })();
+
+// Barra de scroll horizontal simples
+(function() {
+  const wrap = document.querySelector('.canvas-wrap');
+  const bar = document.createElement('div');
+  bar.style.cssText = 'width:100%;height:12px;background:#e5e7eb;border-radius:6px;margin-top:4px;position:relative;cursor:pointer;';
+  const thumb = document.createElement('div');
+  thumb.style.cssText = 'position:absolute;height:100%;background:#9ca3af;border-radius:6px;width:30%;left:0;';
+  bar.appendChild(thumb);
+  wrap.parentElement.insertBefore(bar, wrap.nextSibling);
+
+  function update() {
+    const total = markerLength() * baseScale * view.zoom + 200;
+    const visible = canvas.width;
+    const ratio = Math.min(1, visible / total);
+    thumb.style.width = Math.max(30, ratio * bar.offsetWidth) + 'px';
+    const maxPan = 0;
+    const minPan = visible - total;
+    const range = maxPan - minPan;
+    const pos = range ? ((view.panX - minPan) / range) : 0;
+    const maxLeft = bar.offsetWidth - thumb.offsetWidth;
+    thumb.style.left = Math.max(0, Math.min(maxLeft, pos * maxLeft)) + 'px';
+  }
+
+  setInterval(update, 150);
+})();
