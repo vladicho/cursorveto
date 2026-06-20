@@ -2175,3 +2175,23 @@ canvas {
 .scroll-track.scroll-y { right: 4px; top: 4px; bottom: 16px; width: 8px; }
 .scroll-thumb { position: absolute; background: #9ca3af; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
 .scroll-thumb:hover { background: #6b7280; }
+
+/* Scrollbar horizontal sempre visivel */
+.canvas-wrap {
+  overflow-x: scroll !important;
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #e5e7eb;
+}
+.canvas-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+.canvas-wrap::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+.canvas-wrap::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 5px;
+}
+.canvas-wrap::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
