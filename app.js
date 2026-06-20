@@ -4419,3 +4419,37 @@ async function initAuthUi() {
 setActiveGradeRow(activeGradeRowIndex);
 setMarkerHeaderVisible(!ui.markerHeader.hidden);
 draw();
+
+// Scrollbars
+(function() {
+  const thumbX = document.getElementById('scrollThumbX');
+  const thumbY = document.getElementById('scrollThumbY');
+
+  function updateScrollbars() {
+    if (!thumbX || !thumbY) return;
+    const totalW = (markerLength() * baseScale * view.zoom) + origin.x * 2;
+    const totalH = (fabricWidth * baseScale * view.zoom) + origin.y * 2;
+    const visW = canvas.width;
+    const visH = canvas.height;
+    const ratioW = Math.min(1, visW / totalW);
+    const ratioH = Math.min(1, visH / totalH);
+    const trackX = thumbX.parentElement;
+    const trackY = thumbY.parentElement;
+    const trackW = trackX.offsetWidth;
+    const trackH = trackY.offsetHeight;
+    thumbX.style.width = Math.max(30, ratioW * trackW) + 'px';
+    thumbY.style.height = Math.max(30, ratioH * trackH) + 'px';
+    const scrollRangeX = totalW - visW;
+    const scrollRangeY = totalH - visH;
+    const panOffsetX = -(view.panX);
+    const panOffsetY = -(view.panY);
+    const posX = scrollRangeX > 0 ? (panOffsetX / scrollRangeX) * (trackW - thumbX.offsetWidth) : 0;
+    const posY = scrollRangeY > 0 ? (panOffsetY / scrollRangeY) * (trackH - thumbY.offsetHeight) : 0;
+    thumbX.style.left = Math.max(0, Math.min(trackW - thumbX.offsetWidth, posX)) + 'px';
+    thumbY.style.top = Math.max(0, Math.min(trackH - thumbY.offsetHeight, posY)) + 'px';
+    trackX.style.display = ratioW >= 1 ? 'none' : 'block';
+    trackY.style.display = ratioH >= 1 ? 'none' : 'block';
+  }
+
+  setInterval(updateScrollbars, 200);
+})();
