@@ -16,22 +16,51 @@ function statusLabel(status) {
   return "Pendente";
 }
 
+function formatDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return "0 KB";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
 function renderUserCard(user, container) {
   const card = document.createElement("article");
   card.className = "admin-user-card";
+
   const info = document.createElement("div");
   const name = document.createElement("strong");
   const email = document.createElement("div");
   const meta = document.createElement("div");
+  const metrics = document.createElement("div");
   const buttons = document.createElement("div");
+
   email.className = "admin-user-meta";
   meta.className = "admin-user-meta";
+  metrics.className = "admin-user-meta";
   buttons.className = "admin-user-buttons";
+
   name.textContent = user.name;
   email.textContent = user.email;
   meta.textContent = `${statusLabel(user.status)} · ${user.role}`;
-  info.append(name, email, meta);
+
+  // Métricas
+  const loginInfo = user.login_count
+    ? `${user.login_count} login${user.login_count > 1 ? "s" : ""} · Último: ${formatDate(user.last_login)}`
+    : "Nunca fez login";
+  const sizeInfo = `Dados: ${formatBytes(user.data_size_bytes)}`;
+  const createdInfo = user.created_at ? `Cadastro: ${formatDate(user.created_at)}` : "";
+
+  metrics.innerHTML = `<span style="color:#6b7280;font-size:12px;">📅 ${createdInfo} &nbsp;·&nbsp; 🔑 ${loginInfo} &nbsp;·&nbsp; 💾 ${sizeInfo}</span>`;
+
+  info.append(name, email, meta, metrics);
   card.append(info, buttons);
+
   if (user.status === "pending") {
     const approve = document.createElement("button");
     approve.type = "button";
@@ -46,6 +75,7 @@ function renderUserCard(user, container) {
     reject.addEventListener("click", () => updateUser(user.id, "reject"));
     buttons.appendChild(reject);
   }
+
   container.appendChild(card);
 }
 
