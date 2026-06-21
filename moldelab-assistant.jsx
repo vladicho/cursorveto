@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createRoot } from "react-dom/client";
 
 const SYSTEM_PROMPT = `Você é o assistente do Moldelab, uma plataforma de criação e edição de moldes de costura no canvas.
 
@@ -437,9 +438,8 @@ export default function MoldelabAssistant() {
   );
 }
 
-// ── Ponto de entrada ──────────────────────────────────────────────────────────
-import { createRoot } from "react-dom/client";
 
+// ── Ponto de entrada ──────────────────────────────────────────────────────────
 const container = document.getElementById("moldelab-chat");
 if (container) {
   createRoot(container).render(<MoldelabAssistant />);
