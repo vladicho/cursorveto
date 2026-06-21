@@ -436,3 +436,11 @@ export default function MoldelabAssistant() {
     </>
   );
 }
+
+// ── Ponto de entrada ──────────────────────────────────────────────────────────
+import { createRoot } from "react-dom/client";
+
+const container = document.getElementById("moldelab-chat");
+if (container) {
+  createRoot(container).render(<MoldelabAssistant />);
+}
