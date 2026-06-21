@@ -157,6 +157,161 @@ let activeGradeRowIndex = 1;
 
 const pieces = [];
 
+// ── Tab management ──────────────────────────────────────────────
+let tabs = [];
+let activeTabId = null;
+let tabCounter = 0;
+
+function newBlankSnapshot(name = "Novo Projeto") {
+  return {
+    version: 1,
+    app: "MoldeLab",
+    projectName: name,
+    fabric: { type: "flat", width: 150, spacing: 0, nestingTimer: 3, length: 0 },
+    editor: { snapToGrid: false, showGrid: true, gridStep: 1, showMarkerHeader: false, nestingStats: null, nestingPlacedIds: null },
+    counters: { newPieceCount: 1, digitizedCount: 1, importedCount: 1 },
+    selectedId: null,
+    pieces: [],
+  };
+}
+
+function captureCurrentTabSnapshot() {
+  const tab = tabs.find((t) => t.id === activeTabId);
+  if (!tab) return;
+  tab.snapshot = cloneSnapshot(projectSnapshot());
+  tab.undoStack = undoStack.map(cloneSnapshot);
+  tab.redoStack = redoStack.map(cloneSnapshot);
+}
+
+function isTabDirty(tab) {
+  return JSON.stringify(tab.snapshot) !== JSON.stringify(tab.savedSnapshot);
+}
+
+function renderTabs() {
+  const list = document.getElementById("tabList");
+  list.innerHTML = "";
+  tabs.forEach((tab) => {
+    const el = document.createElement("div");
+    el.className = "tab-item" + (tab.id === activeTabId ? " active" : "") + (isTabDirty(tab) ? " dirty" : "");
+    el.setAttribute("role", "tab");
+    el.setAttribute("aria-selected", tab.id === activeTabId ? "true" : "false");
+    el.dataset.tabId = tab.id;
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "tab-name";
+    nameEl.textContent = tab.snapshot?.projectName || "Projeto";
+    el.appendChild(nameEl);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "tab-close";
+    closeBtn.title = "Fechar aba";
+    closeBtn.innerHTML = "×";
+    closeBtn.addEventListener("click", (e) => { e.stopPropagation(); closeTab(tab.id); });
+    el.appendChild(closeBtn);
+
+    el.addEventListener("click", () => switchTab(tab.id));
+    list.appendChild(el);
+  });
+  // re-init lucide icons if any
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function switchTab(id) {
+  if (id === activeTabId) return;
+  captureCurrentTabSnapshot();
+  activeTabId = id;
+  const tab = tabs.find((t) => t.id === id);
+  if (!tab) return;
+  undoStack.splice(0, undoStack.length, ...(tab.undoStack || []).map(cloneSnapshot));
+  redoStack.splice(0, redoStack.length, ...(tab.redoStack || []).map(cloneSnapshot));
+  restoreSnapshot(tab.snapshot);
+  mode = "move";
+  view.zoom = tab.view?.zoom || 1;
+  view.panX = tab.view?.panX || 0;
+  view.panY = tab.view?.panY || 0;
+  draw();
+  renderTabs();
+  updateImportStatus(`Projeto: ${tab.snapshot.projectName}`);
+}
+
+function createTab(snapshot, savedSnapshot = null, fileName = null) {
+  tabCounter += 1;
+  const id = `tab-${tabCounter}`;
+  const snap = cloneSnapshot(snapshot);
+  tabs.push({
+    id,
+    snapshot: snap,
+    savedSnapshot: cloneSnapshot(savedSnapshot || snap),
+    fileName,
+    undoStack: [],
+    redoStack: [],
+    view: { zoom: 1, panX: 0, panY: 0 },
+  });
+  return id;
+}
+
+function closeTab(id) {
+  const tab = tabs.find((t) => t.id === id);
+  if (!tab) return;
+
+  // Update snapshot before checking dirty state
+  if (id === activeTabId) captureCurrentTabSnapshot();
+
+  if (isTabDirty(tab)) {
+    const name = tab.snapshot?.projectName || "Projeto";
+    const choice = confirm(`"${name}" tem alterações não salvas.\nClique OK para salvar antes de fechar, ou Cancelar para fechar sem salvar.`);
+    if (choice) {
+      // Switch to that tab then save
+      if (id !== activeTabId) switchTab(id);
+      saveProject();
+      // mark clean
+      tab.savedSnapshot = cloneSnapshot(tab.snapshot);
+    }
+  }
+
+  const index = tabs.findIndex((t) => t.id === id);
+  tabs.splice(index, 1);
+
+  if (tabs.length === 0) {
+    // Always keep at least one tab
+    const newId = createTab(newBlankSnapshot());
+    activeTabId = newId;
+    restoreSnapshot(tabs[0].snapshot);
+    undoStack.splice(0, undoStack.length);
+    redoStack.splice(0, redoStack.length);
+    mode = "move";
+    view.zoom = 1; view.panX = 0; view.panY = 0;
+    draw();
+  } else if (id === activeTabId) {
+    const nextTab = tabs[Math.min(index, tabs.length - 1)];
+    activeTabId = nextTab.id;
+    undoStack.splice(0, undoStack.length, ...(nextTab.undoStack || []).map(cloneSnapshot));
+    redoStack.splice(0, redoStack.length, ...(nextTab.redoStack || []).map(cloneSnapshot));
+    restoreSnapshot(nextTab.snapshot);
+    mode = "move";
+    view.zoom = nextTab.view?.zoom || 1;
+    view.panX = nextTab.view?.panX || 0;
+    view.panY = nextTab.view?.panY || 0;
+    draw();
+  }
+
+  renderTabs();
+}
+
+function openInNewTab(snapshot, savedSnapshot, fileName) {
+  captureCurrentTabSnapshot();
+  const id = createTab(snapshot, savedSnapshot, fileName);
+  activeTabId = id;
+  undoStack.splice(0, undoStack.length);
+  redoStack.splice(0, redoStack.length);
+  restoreSnapshot(snapshot);
+  mode = "move";
+  view.zoom = 1; view.panX = 0; view.panY = 0;
+  draw();
+  renderTabs();
+}
+// ── End tab management ───────────────────────────────────────────
+
 const gradingCopyColors = ["#dc2626", "#2563eb", "#16a34a", "#9333ea", "#ca8a04", "#0891b2"];
 
 function selectedPiece() {
@@ -2272,6 +2427,13 @@ function saveProject() {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "") || "moldelab-projeto";
   downloadFile(JSON.stringify(snapshot, null, 2), `${safeName}.moldelab.json`, "application/json");
+  // Mark active tab as saved
+  const tab = tabs.find((t) => t.id === activeTabId);
+  if (tab) {
+    tab.snapshot = cloneSnapshot(snapshot);
+    tab.savedSnapshot = cloneSnapshot(snapshot);
+    renderTabs();
+  }
 }
 
 function cloneSnapshot(snapshot) {
@@ -2340,6 +2502,9 @@ function recordHistory() {
   lastNestingPlacedIds = null;
   if (undoStack.length > 80) undoStack.shift();
   redoStack = [];
+  // Update active tab snapshot so dirty indicator reflects latest state
+  const tab = tabs.find((t) => t.id === activeTabId);
+  if (tab) { tab.snapshot = cloneSnapshot(projectSnapshot()); renderTabs(); }
 }
 
 function undoAction() {
@@ -2368,56 +2533,19 @@ function openProject(file) {
         updateImportStatus("Arquivo de projeto invalido.");
         return;
       }
-      recordHistory();
-
-      ui.projectName.value = data.projectName || "MoldeLab Projeto";
-      ui.fabricType.value = data.fabric?.type || "flat";
-      ui.fabricWidth.value = data.fabric?.width || 150;
-      ui.spacing.value = data.fabric?.spacing ?? 0;
-      ui.nestingTimer.value = data.fabric?.nestingTimer ?? 3;
-      ui.snapToGrid.checked = Boolean(data.editor?.snapToGrid);
-      ui.showGrid.checked = data.editor?.showGrid ?? true;
-      ui.gridStep.value = data.editor?.gridStep || 1;
-      restoreMarkerHeaderPreference(data.editor);
-
-      pieces.splice(
-        0,
-        pieces.length,
-        ...data.pieces.map((piece, index) => ({
-          id: piece.id || `loaded-${index + 1}`,
-          name: piece.name || `Peca ${index + 1}`,
-          model: piece.model || "",
-          size: piece.size || "",
-          x: Number(piece.x) || 0,
-          y: Number(piece.y) || 0,
-          rotation: Number(piece.rotation) || 0,
-          grainAngle: Number(piece.grainAngle) || 0,
-          seamAllowance: Number(piece.seamAllowance) || 0,
-          mirrored: Boolean(piece.mirrored),
-          locked: Boolean(piece.locked),
-          color: piece.color || "#475569",
-          points: Array.isArray(piece.points) ? piece.points.map(([x, y]) => [Number(x) || 0, Number(y) || 0]) : [],
-          notches: Array.isArray(piece.notches) ? piece.notches.map(Number).filter(Number.isInteger) : [],
-        })).filter((piece) => piece.points.length >= 3)
-          .map((piece) => ({
-            ...piece,
-            notches: piece.notches.filter((pointIndex) => pointIndex >= 0 && pointIndex < piece.points.length),
-          })),
-      );
-
-      newPieceCount = data.counters?.newPieceCount || 1;
-      digitizedCount = data.counters?.digitizedCount || 1;
-      importedCount = data.counters?.importedCount || 1;
-      selectedId = pieces[0]?.id || null;
-      lastNestingStats = validNestingStats(data.editor?.nestingStats);
-      lastNestingPlacedIds = lastNestingStats ? validPlacedIds(data.editor?.nestingPlacedIds) : null;
-      if (!lastNestingPlacedIds) lastNestingStats = null;
-      contourPoints = [];
-      calibrationPoints = [];
-      measurePoints = [];
-      mode = "move";
-      updateImportStatus(`Projeto aberto: ${ui.projectName.value}`);
-      draw();
+      // Build a full snapshot from file data (reuse restoreSnapshot logic via temp)
+      const snap = {
+        version: data.version || 1,
+        app: "MoldeLab",
+        projectName: data.projectName || "MoldeLab Projeto",
+        fabric: data.fabric || {},
+        editor: data.editor || {},
+        counters: data.counters || {},
+        selectedId: data.selectedId || null,
+        pieces: data.pieces,
+      };
+      openInNewTab(snap, cloneSnapshot(snap), file.name);
+      updateImportStatus(`Projeto aberto: ${snap.projectName}`);
     } catch (error) {
       updateImportStatus("Nao foi possivel abrir o projeto.");
     }
@@ -4423,6 +4551,36 @@ async function initAuthUi() {
 
 setActiveGradeRow(activeGradeRowIndex);
 setMarkerHeaderVisible(!ui.markerHeader.hidden);
+
+// ── Initialize tab system ──
+(function initTabs() {
+  const firstSnap = newBlankSnapshot("MoldeLab Projeto");
+  const firstId = createTab(firstSnap, cloneSnapshot(firstSnap));
+  activeTabId = firstId;
+  renderTabs();
+  document.getElementById("tabNew").addEventListener("click", () => {
+    captureCurrentTabSnapshot();
+    const snap = newBlankSnapshot(`Projeto ${tabs.length + 1}`);
+    const id = createTab(snap, cloneSnapshot(snap));
+    activeTabId = id;
+    undoStack.splice(0, undoStack.length);
+    redoStack.splice(0, redoStack.length);
+    restoreSnapshot(snap);
+    mode = "move";
+    view.zoom = 1; view.panX = 0; view.panY = 0;
+    draw();
+    renderTabs();
+  });
+  // Re-render tabs when project name changes so tab label updates
+  ui.projectName.addEventListener("input", () => {
+    const tab = tabs.find((t) => t.id === activeTabId);
+    if (tab) {
+      tab.snapshot = cloneSnapshot(projectSnapshot());
+      renderTabs();
+    }
+  });
+})();
+
 draw();
 
 
