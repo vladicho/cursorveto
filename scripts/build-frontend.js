@@ -22,6 +22,7 @@ async function build() {
     sourcemap: false,
     drop: ["console", "debugger"],
     logLevel: "info",
+    jsx: "automatic",
   });
 
   const buildInfo = {
