@@ -1498,7 +1498,12 @@ function drawNestingPreview() {
 }
 
 function updateNestingProgress(message = "Calculando encaixe...") {
-  ui.statusMessage.textContent = message;
+  if (message === "Calculando encaixe..." && nestingPreview?.stats) {
+    const s = nestingPreview.stats;
+    ui.statusMessage.textContent = `Calculando... comprimento ${s.usedLength.toFixed(1)} cm, aproveitamento ${s.efficiency.toFixed(1)}%`;
+  } else {
+    ui.statusMessage.textContent = message;
+  }
 }
 
 function updateNestingProgressBar(startTime, deadline) {
