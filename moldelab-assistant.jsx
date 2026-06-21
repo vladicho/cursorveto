@@ -440,12 +440,5 @@ export default function MoldelabAssistant() {
 // ── Ponto de entrada ──────────────────────────────────────────────────────────
 const container = document.getElementById("moldelab-chat");
 if (container) {
-  try {
-    createRoot(container).render(<MoldelabAssistant />);
-    alert("Chat montado com sucesso!");
-  } catch(e) {
-    alert("Erro ao montar chat: " + e.message);
-  }
-} else {
-  alert("div#moldelab-chat nao encontrado!");
+  createRoot(container).render(<MoldelabAssistant />);
 }
