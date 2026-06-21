@@ -540,6 +540,52 @@ const server = http.createServer((request, response) => {
     return;
   }
 
+
+  if (url.pathname === "/api/chat" && request.method === "POST") {
+    let body = "";
+    request.on("data", (chunk) => { body += chunk; });
+    request.on("end", async () => {
+      try {
+        const { messages, system } = JSON.parse(body);
+        const https = require("https");
+        const payload = JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          system,
+          messages,
+        });
+        const options = {
+          hostname: "api.anthropic.com",
+          path: "/v1/messages",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+            "anthropic-version": "2023-06-01",
+          },
+        };
+        const proxyReq = https.request(options, (proxyRes) => {
+          let data = "";
+          proxyRes.on("data", (chunk) => { data += chunk; });
+          proxyRes.on("end", () => {
+            response.writeHead(proxyRes.statusCode, securityHeaders(mimeTypes[".json"]));
+            response.end(data);
+          });
+        });
+        proxyReq.on("error", (err) => {
+          response.writeHead(500, securityHeaders(mimeTypes[".json"]));
+          response.end(JSON.stringify({ error: err.message }));
+        });
+        proxyReq.write(payload);
+        proxyReq.end();
+      } catch (err) {
+        response.writeHead(400, securityHeaders(mimeTypes[".json"]));
+        response.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   if (url.pathname === "/api/digitize/scikit") {
     handleScikitDigitize(request, response);
     return;
