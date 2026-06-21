@@ -189,31 +189,20 @@ function isTabDirty(tab) {
 
 function renderTabs() {
   const list = document.getElementById("tabList");
-  list.innerHTML = "";
-  tabs.forEach((tab) => {
-    const el = document.createElement("div");
-    el.className = "tab-item" + (tab.id === activeTabId ? " active" : "") + (isTabDirty(tab) ? " dirty" : "");
-    el.setAttribute("role", "tab");
-    el.setAttribute("aria-selected", tab.id === activeTabId ? "true" : "false");
-    el.dataset.tabId = tab.id;
+  list.innerHTML = tabs.map((tab) => {
+    const active = tab.id === activeTabId ? " active" : "";
+    const dirty = isTabDirty(tab) ? " dirty" : "";
+    const name = (tab.snapshot?.projectName || "Projeto").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return `<button class="tab-item${active}${dirty}" data-tab-id="${tab.id}" type="button" role="tab" aria-selected="${tab.id === activeTabId}"><span class="tab-name">${name}</span><span class="tab-close" data-close-tab="${tab.id}" title="Fechar">×</span></button>`;
+  }).join("");
 
-    const nameEl = document.createElement("span");
-    nameEl.className = "tab-name";
-    nameEl.textContent = tab.snapshot?.projectName || "Projeto";
-    el.appendChild(nameEl);
-
-    const closeBtn = document.createElement("button");
-    closeBtn.className = "tab-close";
-    closeBtn.title = "Fechar aba";
-    closeBtn.innerHTML = "×";
-    closeBtn.addEventListener("click", (e) => { e.stopPropagation(); closeTab(tab.id); });
-    el.appendChild(closeBtn);
-
-    el.addEventListener("click", () => switchTab(tab.id));
-    list.appendChild(el);
+  list.querySelectorAll(".tab-item").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      const closeId = e.target.closest("[data-close-tab]")?.dataset?.closeTab;
+      if (closeId) { closeTab(closeId); return; }
+      switchTab(el.dataset.tabId);
+    });
   });
-  // re-init lucide icons if any
-  if (window.lucide) window.lucide.createIcons();
 }
 
 function switchTab(id) {

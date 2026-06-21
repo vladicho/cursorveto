@@ -2198,10 +2198,12 @@ canvas {
   min-width: 120px;
   max-width: 200px;
   height: 36px;
+  border: none;
   border-right: 1px solid var(--line);
   background: #e8ede7;
   color: var(--muted);
   font-size: 12.5px;
+  font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -2209,6 +2211,8 @@ canvas {
   position: relative;
   flex-shrink: 0;
   box-sizing: border-box;
+  text-align: left;
+  border-radius: 0;
 }
 .tab-item:hover { background: #dde5db; }
 .tab-item.active {
