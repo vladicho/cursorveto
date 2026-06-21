@@ -2190,12 +2190,14 @@ canvas {
 .tab-list::-webkit-scrollbar { display: none; }
 
 .tab-item {
-  display: flex;
+  display: inline-flex !important;
+  flex-direction: row !important;
   align-items: center;
   gap: 6px;
   padding: 0 10px 0 14px;
   min-width: 120px;
   max-width: 200px;
+  height: 36px;
   border-right: 1px solid var(--line);
   background: #e8ede7;
   color: var(--muted);
@@ -2206,6 +2208,7 @@ canvas {
   user-select: none;
   position: relative;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 .tab-item:hover { background: #dde5db; }
 .tab-item.active {
