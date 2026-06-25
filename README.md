@@ -241,6 +241,53 @@ pagamento por cartao. A implementacao recomendada e usar um provedor de
 pagamentos como Stripe, Mercado Pago ou Pagar.me, com backend proprio para
 validar webhooks e liberar recursos pagos.
 
+## Acesso de Usuarios pela Conta Google
+
+O MoldeLab deve suportar login com conta Google via OAuth 2.0, eliminando a
+necessidade de cadastro manual com email e senha.
+
+### Fluxo de autenticacao
+
+1. O usuario clica em "Entrar com Google" na tela de login.
+2. O navegador redireciona para a pagina de consentimento do Google.
+3. Apos autorizar, o Google retorna um `id_token` (JWT) ao backend.
+4. O backend valida o token usando a biblioteca oficial do Google e extrai
+   `sub` (ID unico), `email`, `name` e `picture`.
+5. Se o usuario nao existir em `users.json` (ou banco de dados), ele e criado
+   automaticamente com plano gratuito.
+6. O backend emite uma sessao propria (cookie seguro ou JWT interno) e redireciona
+   para o editor.
+
+### Implementacao no backend (Node.js)
+
+- Instalar `google-auth-library` para validar o `id_token` do Google.
+- Criar rota `GET /auth/google` que redireciona para o endpoint OAuth do Google
+  com os escopos `openid email profile`.
+- Criar rota `GET /auth/google/callback` que recebe o `code`, troca pelo
+  `id_token` e processa o login/cadastro do usuario.
+- Variavel de ambiente necessaria no Render:
+  - `GOOGLE_CLIENT_ID` — ID do cliente OAuth registrado no Google Cloud Console.
+  - `GOOGLE_CLIENT_SECRET` — Segredo do cliente OAuth.
+  - `GOOGLE_CALLBACK_URL` — URL de callback registrada no Google Cloud Console
+    (ex: `https://meuapp.onrender.com/auth/google/callback`).
+
+### Configuracao no Google Cloud Console
+
+1. Acesse [console.cloud.google.com](https://console.cloud.google.com).
+2. Crie um projeto ou selecione o existente.
+3. Va em **APIs e Servicos > Credenciais > Criar credencial > ID do cliente OAuth**.
+4. Selecione **Aplicativo da Web**.
+5. Adicione a URL de callback autorizada (ex: `https://meuapp.onrender.com/auth/google/callback`).
+6. Copie o `Client ID` e o `Client Secret` para as variaveis de ambiente do Render.
+
+### Compatibilidade com autenticacao existente
+
+- Usuarios que ja se cadastraram com email/senha continuam funcionando normalmente.
+- Se o mesmo email for usado pelo Google e por cadastro manual, o sistema deve
+  vincular as contas ou avisar o usuario para evitar duplicatas.
+- O campo `auth_provider` em `users.json` deve registrar `"google"` ou `"local"`
+  para diferenciar a origem do cadastro.
+
 ## Roadmap Windows
 
 A versao Windows deve ser empacotada futuramente com Tauri ou Electron. A
