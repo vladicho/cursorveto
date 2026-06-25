@@ -1,5 +1,6 @@
 const params = new URLSearchParams(window.location.search);
 const nextPath = params.get("next") || "/";
+const oauthError = params.get("error");
 const message = document.querySelector("#authMessage");
 const tabLogin = document.querySelector("#tabLogin");
 const tabRegister = document.querySelector("#tabRegister");
@@ -46,6 +47,11 @@ function goToApp(data) {
 
 tabLogin.addEventListener("click", () => setTab("login"));
 tabRegister.addEventListener("click", () => setTab("register"));
+
+// Exibe erro retornado pelo callback Google OAuth
+if (oauthError) {
+  showMessage(decodeURIComponent(oauthError), true);
+}
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();

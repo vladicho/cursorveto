@@ -97,6 +97,45 @@ body {
   color: var(--accent-dark);
 }
 
+/* Divisor "ou" entre formulário e Google */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* Botão Entrar com Google */
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+.btn-google:hover {
+  background: #f7faf8;
+  border-color: #b0bbb8;
+  box-shadow: 0 2px 8px rgba(29, 36, 36, 0.08);
+}
+
 .user-menu {
   margin-left: auto;
   display: flex;

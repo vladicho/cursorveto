@@ -4,6 +4,21 @@ const path = require("path");
 const { createUserStore } = require("./user-store");
 const nestingLimits = require("./nesting-limits");
 
+// Google OAuth (google-auth-library)
+let OAuth2Client;
+try { OAuth2Client = require("google-auth-library").OAuth2Client; } catch {}
+
+function googleOAuthClient() {
+  if (!OAuth2Client) throw new Error("google-auth-library nao instalado. Execute: npm install google-auth-library");
+  const clientId     = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const callbackUrl  = process.env.GOOGLE_CALLBACK_URL;
+  if (!clientId || !clientSecret || !callbackUrl) {
+    throw new Error("Variaveis GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET e GOOGLE_CALLBACK_URL sao obrigatorias.");
+  }
+  return new OAuth2Client(clientId, clientSecret, callbackUrl);
+}
+
 const root = path.join(__dirname, "..");
 const dataDir = process.env.MOLDELAB_DATA_DIR || path.join(root, "data");
 const cookieName = "moldelab_session";
@@ -273,6 +288,8 @@ function isPublicPath(pathname) {
   if (pathname.startsWith("/api/auth/login") || pathname.startsWith("/api/auth/register")) return true;
   if (pathname.startsWith("/api/admin/")) return true;
   if (pathname.startsWith("/api/auth/me")) return true;
+  // Rotas publicas do Google OAuth
+  if (pathname.startsWith("/auth/google")) return true;
   return false;
 }
 
@@ -468,7 +485,105 @@ function handleNestingApi(request, response, url) {
   }
 }
 
+// ---------- Google OAuth handlers ----------
+
+function handleGoogleOAuth(request, response, url) {
+  // Rota 1: Inicia o fluxo OAuth — redireciona para o Google
+  if (url.pathname === "/auth/google" && request.method === "GET") {
+    try {
+      const client = googleOAuthClient();
+      const authUrl = client.generateAuthUrl({
+        access_type: "offline",
+        scope: ["openid", "email", "profile"],
+        prompt: "select_account",
+      });
+      response.writeHead(302, { Location: authUrl });
+      response.end();
+    } catch (err) {
+      console.error("Erro ao iniciar Google OAuth:", err.message);
+      response.writeHead(302, { Location: `/login.html?error=${encodeURIComponent(err.message)}` });
+      response.end();
+    }
+    return true;
+  }
+
+  // Rota 2: Callback do Google — troca o code por tokens e cria sessao
+  if (url.pathname === "/auth/google/callback" && request.method === "GET") {
+    const code  = url.searchParams.get("code");
+    const error = url.searchParams.get("error");
+
+    if (error || !code) {
+      response.writeHead(302, { Location: `/login.html?error=${encodeURIComponent(error || "acesso negado")}` });
+      response.end();
+      return true;
+    }
+
+    (async () => {
+      try {
+        const client = googleOAuthClient();
+        const { tokens } = await client.getToken(code);
+        client.setCredentials(tokens);
+
+        // Verifica o id_token para obter dados do usuario
+        const ticket = await client.verifyIdToken({
+          idToken: tokens.id_token,
+          audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const googleEmail = normalizeEmail(payload.email);
+        const googleName  = payload.name || payload.email;
+
+        // Busca ou cria o usuario
+        let user = findUserByEmail(googleEmail);
+        if (!user) {
+          // Novo usuario via Google: aprovado automaticamente
+          const needsAdmin = !hasApprovedAdmin();
+          user = {
+            id: crypto.randomUUID(),
+            name: googleName,
+            email: googleEmail,
+            password_hash: "",           // sem senha local
+            google_id: payload.sub,
+            status: "approved",          // Google users sao aprovados automaticamente
+            role: needsAdmin ? "admin" : resolveRole(googleEmail),
+            nesting_usage: {},
+            extra_credits: 0,
+            created_at: new Date().toISOString(),
+            last_login: null,
+            total_session_minutes: 0,
+            login_count: 0,
+          };
+          user = store.insert(user);
+        } else if (!isApproved(user)) {
+          // Usuario ja existia mas ainda nao estava aprovado — aprova via Google
+          user = store.update(user.id, { status: "approved", google_id: payload.sub });
+        }
+
+        recordLogin(user.id);
+        const token = signToken(user);
+        setSessionCookie(response, token, request);
+        response.writeHead(302, { Location: "/" });
+        response.end();
+      } catch (err) {
+        console.error("Erro no callback Google OAuth:", err.message);
+        response.writeHead(302, { Location: `/login.html?error=${encodeURIComponent("Falha na autenticacao Google. Tente novamente.")}` });
+        response.end();
+      }
+    })();
+
+    return true;
+  }
+
+  return false;
+}
+
+// -------------------------------------------
+
 function handleAuthApi(request, response, url) {
+  // Google OAuth (nao e /api/, e tratado separadamente)
+  if (url.pathname.startsWith("/auth/google")) {
+    return handleGoogleOAuth(request, response, url);
+  }
   if (url.pathname.startsWith("/api/admin/")) {
     return handleAdminApi(request, response, url);
   }
@@ -614,5 +729,6 @@ module.exports = {
   isAdmin,
   handleAuthApi,
   handleNestingApi,
+  handleGoogleOAuth,
   redirectToLogin,
 };
