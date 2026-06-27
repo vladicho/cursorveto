@@ -8,12 +8,13 @@ function showMessage(text, isError = false) {
   adminMessage.textContent = text;
   adminMessage.classList.toggle("auth-error", isError);
   adminMessage.classList.toggle("auth-success", !isError);
+  setTimeout(() => { adminMessage.hidden = true; }, 4000);
 }
 
 function statusLabel(status) {
-  if (status === "approved") return "Aprovado";
-  if (status === "rejected") return "Recusado";
-  return "Pendente";
+  if (status === "approved") return "✅ Aprovado";
+  if (status === "rejected") return "🚫 Bloqueado";
+  return "⏳ Pendente";
 }
 
 function formatDate(iso) {
@@ -47,40 +48,79 @@ function renderUserCard(user, container) {
 
   name.textContent = user.name;
   email.textContent = user.email;
-  meta.textContent = `${statusLabel(user.status)} · ${user.role}`;
+  meta.textContent = statusLabel(user.status) + " · " + user.role;
 
   // Métricas
   const loginInfo = user.login_count
-    ? `${user.login_count} login${user.login_count > 1 ? "s" : ""} · Último: ${formatDate(user.last_login)}`
+    ? user.login_count + " login" + (user.login_count > 1 ? "s" : "") + " · Último: " + formatDate(user.last_login)
     : "Nunca fez login";
-  const sizeInfo = `Dados: ${formatBytes(user.data_size_bytes)}`;
-  const createdInfo = user.created_at ? `Cadastro: ${formatDate(user.created_at)}` : "";
+  const sizeInfo = "Dados: " + formatBytes(user.data_size_bytes);
+  const createdInfo = user.created_at ? "Cadastro: " + formatDate(user.created_at) : "";
 
-  metrics.innerHTML = `<span style="color:#6b7280;font-size:12px;">📅 ${createdInfo} &nbsp;·&nbsp; 🔑 ${loginInfo} &nbsp;·&nbsp; 💾 ${sizeInfo}</span>`;
+  metrics.innerHTML = '<span style="color:#6b7280;font-size:12px;">📅 ' + createdInfo + ' &nbsp;·&nbsp; 🔑 ' + loginInfo + ' &nbsp;·&nbsp; 💾 ' + sizeInfo + '</span>';
 
   info.append(name, email, meta, metrics);
   card.append(info, buttons);
+
+  // ── Botões conforme status ──
 
   if (user.status === "pending") {
     const approve = document.createElement("button");
     approve.type = "button";
     approve.className = "primary";
-    approve.textContent = "Aprovar";
+    approve.textContent = "✅ Aprovar";
     approve.addEventListener("click", () => updateUser(user.id, "approve"));
     buttons.appendChild(approve);
 
     const reject = document.createElement("button");
     reject.type = "button";
-    reject.textContent = "Recusar";
+    reject.className = "btn-danger";
+    reject.textContent = "❌ Recusar";
     reject.addEventListener("click", () => updateUser(user.id, "reject"));
     buttons.appendChild(reject);
+  }
+
+  if (user.status === "approved" && user.role !== "admin") {
+    const block = document.createElement("button");
+    block.type = "button";
+    block.className = "btn-warning";
+    block.textContent = "🚫 Bloquear";
+    block.addEventListener("click", () => {
+      if (confirm("Tem certeza que deseja BLOQUEAR o usuário " + user.name + "? Ele não poderá mais fazer login.")) {
+        actionUser(user.id, "block");
+      }
+    });
+    buttons.appendChild(block);
+  }
+
+  if (user.status === "rejected") {
+    const unblock = document.createElement("button");
+    unblock.type = "button";
+    unblock.className = "primary";
+    unblock.textContent = "🔓 Desbloquear";
+    unblock.addEventListener("click", () => actionUser(user.id, "unblock"));
+    buttons.appendChild(unblock);
+  }
+
+  // Deletar — disponível para todos exceto admin
+  if (user.role !== "admin") {
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn-danger-outline";
+    del.textContent = "🗑️ Deletar";
+    del.addEventListener("click", () => {
+      if (confirm("ATENÇÃO: Deletar o usuário " + user.name + " (" + user.email + ") é PERMANENTE. Continuar?")) {
+        deleteUser(user.id);
+      }
+    });
+    buttons.appendChild(del);
   }
 
   container.appendChild(card);
 }
 
 async function updateUser(userId, action) {
-  const response = await fetch(`/api/admin/users/${userId}/${action}`, {
+  const response = await fetch("/api/admin/users/" + userId + "/" + action, {
     method: "POST",
     credentials: "same-origin",
   });
@@ -89,7 +129,35 @@ async function updateUser(userId, action) {
     showMessage(data.error || "Nao foi possivel atualizar o usuario.", true);
     return;
   }
-  showMessage(`Usuario ${action === "approve" ? "aprovado" : "recusado"}.`, false);
+  showMessage("Usuario " + (action === "approve" ? "aprovado" : "recusado") + ".", false);
+  await loadUsers();
+}
+
+async function actionUser(userId, action) {
+  const response = await fetch("/api/admin/users/" + userId + "/" + action, {
+    method: "POST",
+    credentials: "same-origin",
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.ok) {
+    showMessage(data.error || "Erro ao executar ação.", true);
+    return;
+  }
+  showMessage(data.message || "Ação executada com sucesso.", false);
+  await loadUsers();
+}
+
+async function deleteUser(userId) {
+  const response = await fetch("/api/admin/users/" + userId, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.ok) {
+    showMessage(data.error || "Erro ao deletar usuario.", true);
+    return;
+  }
+  showMessage(data.message || "Usuario deletado.", false);
   await loadUsers();
 }
 
