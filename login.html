@@ -17,42 +17,6 @@
           </div>
         </div>
 
-        <div class="auth-tabs" role="tablist">
-          <button id="tabLogin" class="auth-tab active" type="button" data-tab="login">Entrar</button>
-          <button id="tabRegister" class="auth-tab" type="button" data-tab="register">Criar conta</button>
-        </div>
-
-        <form id="loginForm" class="auth-form">
-          <label>
-            Email
-            <input id="loginEmail" type="email" autocomplete="username" required />
-          </label>
-          <label>
-            Senha
-            <input id="loginPassword" type="password" autocomplete="current-password" required />
-          </label>
-          <button class="primary" type="submit">Entrar</button>
-        </form>
-
-        <form id="registerForm" class="auth-form" hidden>
-          <label>
-            Nome
-            <input id="registerName" type="text" autocomplete="name" required />
-          </label>
-          <label>
-            Email
-            <input id="registerEmail" type="email" autocomplete="email" required />
-          </label>
-          <label>
-            Senha
-            <input id="registerPassword" type="password" autocomplete="new-password" minlength="8" required />
-          </label>
-          <button class="primary" type="submit">Criar conta</button>
-        </form>
-
-        <!-- Divisor OAuth -->
-        <div class="auth-divider"><span>ou</span></div>
-
         <!-- Botão Google OAuth -->
         <a id="googleLoginBtn" href="/auth/google" class="btn-google">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -66,7 +30,6 @@
         </a>
 
         <p id="authMessage" class="auth-message" hidden></p>
-        <a id="adminPanelLink" class="admin-link" href="/admin.html" hidden>Aprovar usuarios (admin)</a>
       </section>
     </main>
     <script src="login.js"></script>

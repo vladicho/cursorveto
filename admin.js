@@ -1,3 +1,5 @@
+const adminLoginForm = document.querySelector("#adminLoginForm");
+const adminPanel = document.querySelector("#adminPanel");
 const pendingUsers = document.querySelector("#pendingUsers");
 const allUsers = document.querySelector("#allUsers");
 const adminMessage = document.querySelector("#adminMessage");
@@ -162,13 +164,6 @@ async function deleteUser(userId) {
 }
 
 async function loadUsers() {
-  const meResponse = await fetch("/api/auth/me", { credentials: "same-origin" });
-  const meData = await meResponse.json().catch(() => ({}));
-  if (!meResponse.ok || meData.user?.role !== "admin" || meData.user?.status !== "approved") {
-    window.location.href = "/login.html?next=/admin.html";
-    return;
-  }
-
   const [pendingResponse, allResponse] = await Promise.all([
     fetch("/api/admin/users?status=pending", { credentials: "same-origin" }),
     fetch("/api/admin/users", { credentials: "same-origin" }),
@@ -197,5 +192,51 @@ async function loadUsers() {
   }
 }
 
-refreshUsers.addEventListener("click", () => loadUsers().catch(() => showMessage("Erro ao atualizar.", true)));
-loadUsers().catch(() => showMessage("Erro ao carregar painel.", true));
+function showAdminPanel() {
+  adminLoginForm.hidden = true;
+  adminPanel.hidden = false;
+  loadUsers().catch(() => showMessage("Erro ao carregar painel.", true));
+}
+
+// Login admin via email/senha
+adminLoginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  adminMessage.hidden = true;
+  try {
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: document.querySelector("#adminEmail").value,
+        password: document.querySelector("#adminPassword").value,
+      }),
+      credentials: "same-origin",
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) {
+      showMessage(data.error || "Nao foi possivel autenticar.", true);
+      return;
+    }
+    if (data.user?.role !== "admin") {
+      showMessage("Acesso restrito ao administrador.", true);
+      return;
+    }
+    showAdminPanel();
+  } catch (error) {
+    showMessage(error.message || "Erro ao conectar.", true);
+  }
+});
+
+// Se ja esta logado como admin, mostra o painel direto
+fetch("/api/auth/me", { credentials: "same-origin" })
+  .then((response) => (response.ok ? response.json() : null))
+  .then((data) => {
+    if (data?.ok && data.user?.role === "admin" && data.user?.status === "approved") {
+      showAdminPanel();
+    }
+  })
+  .catch(() => {});
+
+if (refreshUsers) {
+  refreshUsers.addEventListener("click", () => loadUsers().catch(() => showMessage("Erro ao atualizar.", true)));
+}
