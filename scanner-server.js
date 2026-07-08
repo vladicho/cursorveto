@@ -573,7 +573,7 @@ const server = http.createServer((request, response) => {
           messages,
         });
         const command = new InvokeModelCommand({
-          modelId: process.env.BEDROCK_MODEL_ID || "anthropic.claude-sonnet-4-6-20250514-v1:0",
+          modelId: process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-sonnet-4-6",
           contentType: "application/json",
           accept: "application/json",
           body: bedrockPayload,
