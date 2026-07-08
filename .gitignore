@@ -20,5 +20,10 @@ samples/
 # Dados locais (usuarios, sessoes)
 data/
 
+# Variáveis de ambiente (segredos)
+.env
+.env.*
+!.env.example
+
 # Build de producao (JS minificado)
 dist/

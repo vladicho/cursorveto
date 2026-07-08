@@ -6,6 +6,8 @@ const os = require("os");
 const path = require("path");
 const auth = require("./lib/auth");
 const scannerToken = require("./lib/scanner-token");
+const whatsapp = require("./lib/whatsapp");
+const { BedrockRuntimeClient, InvokeModelCommand } = require("@aws-sdk/client-bedrock-runtime");
 
 const distPath = path.join(__dirname, "dist");
 const distReady = fs.existsSync(path.join(distPath, "index.html"));
@@ -48,6 +50,7 @@ function isBasicAuthEnabled() {
 function allowBasicAuth(request, response, url) {
   if (!isBasicAuthEnabled()) return true;
   if (url.pathname === "/health") return true;
+  if (url.pathname === "/webhook/whatsapp") return true;
 
   const header = request.headers.authorization || "";
   if (header.startsWith("Basic ")) {
@@ -541,45 +544,48 @@ const server = http.createServer((request, response) => {
   }
 
 
+  // ── WhatsApp Business API webhook ──────────────────────────────────────────
+  if (url.pathname === "/webhook/whatsapp") {
+    if (request.method === "GET") {
+      whatsapp.handleVerification(url, response);
+      return;
+    }
+    if (request.method === "POST") {
+      whatsapp.handleIncoming(request, response);
+      return;
+    }
+  }
+
+  // ── Chat API via AWS Bedrock ──────────────────────────────────────────────
   if (url.pathname === "/api/chat" && request.method === "POST") {
     let body = "";
     request.on("data", (chunk) => { body += chunk; });
     request.on("end", async () => {
       try {
         const { messages, system } = JSON.parse(body);
-        const https = require("https");
-        const payload = JSON.stringify({
-          model: "claude-sonnet-4-6",
+        const bedrockClient = new BedrockRuntimeClient({
+          region: process.env.AWS_REGION || "us-east-2",
+        });
+        const bedrockPayload = JSON.stringify({
+          anthropic_version: "bedrock-2023-05-31",
           max_tokens: 1000,
           system,
           messages,
         });
-        const options = {
-          hostname: "api.anthropic.com",
-          path: "/v1/messages",
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-            "anthropic-version": "2023-06-01",
-          },
-        };
-        const proxyReq = https.request(options, (proxyRes) => {
-          let data = "";
-          proxyRes.on("data", (chunk) => { data += chunk; });
-          proxyRes.on("end", () => {
-            response.writeHead(proxyRes.statusCode, securityHeaders(mimeTypes[".json"]));
-            response.end(data);
-          });
+        const command = new InvokeModelCommand({
+          modelId: process.env.BEDROCK_MODEL_ID || "anthropic.claude-sonnet-4-6-20250514-v1:0",
+          contentType: "application/json",
+          accept: "application/json",
+          body: bedrockPayload,
         });
-        proxyReq.on("error", (err) => {
-          response.writeHead(500, securityHeaders(mimeTypes[".json"]));
-          response.end(JSON.stringify({ error: err.message }));
-        });
-        proxyReq.write(payload);
-        proxyReq.end();
+        const bedrockResponse = await bedrockClient.send(command);
+        const result = JSON.parse(new TextDecoder().decode(bedrockResponse.body));
+        response.writeHead(200, securityHeaders(mimeTypes[".json"]));
+        response.end(JSON.stringify(result));
       } catch (err) {
-        response.writeHead(400, securityHeaders(mimeTypes[".json"]));
+        console.error("[Bedrock] Erro:", err.message);
+        const statusCode = err.name === "AccessDeniedException" ? 403 : 500;
+        response.writeHead(statusCode, securityHeaders(mimeTypes[".json"]));
         response.end(JSON.stringify({ error: err.message }));
       }
     });
